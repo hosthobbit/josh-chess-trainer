@@ -74,7 +74,9 @@ namespace Kingsfall
         {
             float dt = Time.unscaledDeltaTime;
 
-            if (UserControl && cineWeightTarget < 0.5f)
+            // typing a name must not spin the board
+            bool typing = GameUI.Typing;
+            if (UserControl && cineWeightTarget < 0.5f && !typing)
             {
                 if (Input.GetMouseButton(1) || Input.GetMouseButton(2))
                 {

@@ -48,6 +48,10 @@ namespace Kingsfall.EditorTools
             Print("hung queen", Line("e2e4", "e7e5", "g1f3", "b8c6", "d1e2", "g8f6", "e2b5", "a7a6", "b1c3", "a6b5"), true, Board.White);
             // Legal's mate, two-player wording
             Print("two player", Line("e2e4", "e7e5", "g1f3", "d7d6", "f1c4", "c8g4", "b1c3", "g7g6", "f3e5", "g4d1", "c4f7", "e8e7", "c3d5"), false, Board.White);
+            // must match chess_score() in hosthobbit.com/games-api/chess-scores.php (tested there: 536 and 83)
+            int a = Leaderboard.Compute(new GameScore { Won = true, Difficulty = 1, Moves = 30, Accuracy = 80, Captured = 12 });
+            int b = Leaderboard.Compute(new GameScore { Drew = true, Difficulty = 0, Moves = 80, Accuracy = 50, Captured = 10, Hints = 1 });
+            Debug.Log($"KINGSFALL_SCORETEST {(a == 536 && b == 83 ? "OK" : "FAIL")} {a} {b}");
             Debug.Log("KINGSFALL_REVIEWTEST_DONE");
         }
     }

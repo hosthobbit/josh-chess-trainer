@@ -122,13 +122,15 @@ namespace Kingsfall
 
         void Update()
         {
-            if (Input.GetKeyDown(KeyCode.Escape) && G && G.Reviewing && !ShowMenu) G.EndReview();
+            if (Input.GetKeyDown(KeyCode.Escape) && Leaderboard.I && Leaderboard.I.Visible) Leaderboard.I.Visible = false;
+            else if (Input.GetKeyDown(KeyCode.Escape) && G && G.Reviewing && !ShowMenu) G.EndReview();
             else if (Input.GetKeyDown(KeyCode.Escape) && G && !G.Busy)
             {
                 if (G.AwaitingPromotion) G.CancelPromotion();
                 else if (G.Mode != GameMode.Attract) ShowMenu = !ShowMenu;
             }
-            if (Input.GetKeyDown(KeyCode.F1)) showHelp = !showHelp;
+            UpdateNameTyping();
+            if (Input.GetKeyDown(KeyCode.F1) && !Typing) showHelp = !showHelp;
             menuFade = Mathf.MoveTowards(menuFade, ShowMenu ? 1f : 0f, Time.unscaledDeltaTime * 3f);
 
             // pointer test against last frame's rects (GUI space, y down)
@@ -137,7 +139,7 @@ namespace Kingsfall
             m /= scale;
             PointerOverUI = false;
             foreach (var r in uiRects) if (r.Contains(m)) { PointerOverUI = true; break; }
-            if (ShowMenu) PointerOverUI = true;
+            if (ShowMenu || Leaderboard.I && Leaderboard.I.Visible) PointerOverUI = true;
         }
 
         void OnGUI()
@@ -162,6 +164,13 @@ namespace Kingsfall
             float W = Screen.width / scale, H = 1080f;
             if (Event.current.type == EventType.Layout) uiRects.Clear();
 
+            if (Leaderboard.I && Leaderboard.I.Visible)
+            {
+                // drawn alone so clicks can't fall through to the menu or board underneath
+                GUI.DrawTexture(new Rect(0, 0, W, H), vignetteTex, ScaleMode.StretchToFill);
+                DrawLeaderboard(W, H);
+                return;
+            }
             if (menuFade > 0.01f) DrawMenu(W, H);
             if (menuFade < 0.99f && G.Mode != GameMode.Attract) DrawHud(W, H);
             if (G.Mode == GameMode.Showcase && !string.IsNullOrEmpty(G.ShowcaseCaption)) DrawCaption(W, H);
@@ -207,7 +216,11 @@ namespace Kingsfall
             GUILayout.Space(10);
             if (GUILayout.Button("Two Players", buttonBig, GUILayout.Height(62))) { G.StartTwoPlayer(); ShowMenu = false; }
             GUILayout.Space(10);
-            if (GUILayout.Button("Battle Showcase", buttonBig, GUILayout.Height(62))) { G.StartShowcase(); ShowMenu = false; }
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("Showcase", buttonBig, GUILayout.Height(62))) { G.StartShowcase(); ShowMenu = false; }
+            GUILayout.Space(10);
+            if (GUILayout.Button("Leaderboard", buttonBig, GUILayout.Height(62))) Leaderboard.I.Show();
+            GUILayout.EndHorizontal();
             GUILayout.Space(18);
 
             GUILayout.Label("OPPONENT", heading, GUILayout.Height(34));
@@ -389,22 +402,124 @@ namespace Kingsfall
 
         void DrawGameOver(float W, float H)
         {
-            var r = Track(new Rect(W * 0.5f - 380, H * 0.5f - 170, 760, 300));
+            bool scored = G.Mode == GameMode.VsAI;
+            float extra = scored ? 130f : 0f;
+            var r = Track(new Rect(W * 0.5f - 400, H * 0.5f - 170 - extra * 0.5f, 800, 300 + extra));
             GUI.Box(r, GUIContent.none, panel);
             var big = new GUIStyle(title) { fontSize = 88 };
             big.normal.textColor = GoldC;
             GUI.Label(new Rect(r.x, r.y + 20, r.width, 120), G.GameOverTitle, big);
             GUI.Label(new Rect(r.x, r.y + 140, r.width, 40), G.GameOverDetail, subtitle);
+            if (scored) DrawScore(new Rect(r.x + 30, r.y + 190, r.width - 60, extra));
             bool review = G.Mode == GameMode.VsAI || G.Mode == GameMode.TwoPlayer;
-            float bx = review ? r.x + 30 : r.x + 120, step = review ? 240 : 280;
-            if (GUI.Button(new Rect(bx, r.y + 210, 220, 60), "Rematch", buttonBig)) G.Rematch();
+            float bx = review ? r.x + 40 : r.x + 140, step = review ? 240 : 280, by = r.y + 210 + extra;
+            if (GUI.Button(new Rect(bx, by, 220, 60), "Rematch", buttonBig)) G.Rematch();
             if (review)
             {
                 GUI.enabled = G.CanReview;
-                if (GUI.Button(new Rect(bx + step, r.y + 210, 220, 60), "Grandmaster", buttonBig)) G.StartReview();
+                if (GUI.Button(new Rect(bx + step, by, 220, 60), "Grandmaster", buttonBig)) G.StartReview();
                 GUI.enabled = true;
             }
-            if (GUI.Button(new Rect(bx + step * (review ? 2 : 1), r.y + 210, 220, 60), "Main Menu", buttonBig)) { ShowMenu = true; G.StartAttract(); }
+            if (GUI.Button(new Rect(bx + step * (review ? 2 : 1), by, 220, 60), "Main Menu", buttonBig)) { ShowMenu = true; G.StartAttract(); }
+        }
+
+        // ------------------------------------------------------------ score and leaderboard
+
+        string nameField;
+        bool submitTyped;
+        GameScore typingFor;
+
+        /// <summary>The name box has the keyboard (camera keys and shortcuts are ignored meanwhile).</summary>
+        public static bool Typing { get; private set; }
+
+        void UpdateNameTyping()
+        {
+            if (!Typing || G == null || G.Score == null || G.ScoreSubmitted || !G.GameOver || G.Reviewing) { Typing = false; return; }
+            foreach (char c in Input.inputString)
+            {
+                if (c == '\b') { if (nameField.Length > 0) nameField = nameField.Substring(0, nameField.Length - 1); }
+                else if (c == '\n' || c == '\r') submitTyped = true;
+                else if (nameField.Length < 16 && (char.IsLetterOrDigit(c) || " '._-".IndexOf(c) >= 0)) nameField += c;
+            }
+        }
+
+        void DrawScore(Rect r)
+        {
+            var line = new GUIStyle(small) { fontSize = 19 };
+            if (G.ScorePending || G.Score == null) { GUI.Label(new Rect(r.x, r.y, r.width, 40), "Counting your score…", line); return; }
+            int score = Leaderboard.Compute(G.Score);
+            var head = new GUIStyle(heading) { fontSize = 34 };
+            GUI.Label(new Rect(r.x, r.y, r.width, 44), score > 0 ? $"SCORE  {score}" : "NO SCORE THIS TIME", head);
+            GUI.Label(new Rect(r.x, r.y + 42, r.width, 30), Leaderboard.Breakdown(G.Score), line);
+            if (score <= 0) return;
+            float y = r.y + 80;
+            if (!G.ScoreSubmitted)
+            {
+                if (nameField == null) nameField = PlayerPrefs.GetString("playerName", "");
+                if (typingFor != G.Score) { typingFor = G.Score; Typing = true; } // ready to type after each scored game
+                GUI.Label(new Rect(r.x + 60, y, 110, 40), "Your name", new GUIStyle(body) { fontSize = 20 });
+                // a home-made text box: Unity's IMGUI TextField mishandles typing in browsers
+                var box = new Rect(r.x + 175, y, 260, 40);
+                var field = new GUIStyle(button) { font = KingsfallLibrary.I.bodyFont, fontSize = 22, alignment = TextAnchor.MiddleLeft, padding = new RectOffset(12, 12, 4, 4) };
+                if (Typing) { field.normal.background = buttonHoverTex; field.hover.background = buttonHoverTex; }
+                bool caret = Typing && (Time.unscaledTime * 2f) % 2f < 1.2f;
+                if (GUI.Button(box, nameField + (caret ? "|" : ""), field)) Typing = true;
+                GUI.enabled = nameField.Trim().Length >= 2;
+                if (GUI.Button(new Rect(r.x + 450, y, 240, 40), "Add to leaderboard", button) || submitTyped && GUI.enabled) { Typing = false; G.SubmitScore(nameField.Trim()); }
+                submitTyped = false;
+                GUI.enabled = true;
+                if (!string.IsNullOrEmpty(G.SubmitStatus)) GUI.Label(new Rect(r.x, y + 40, r.width, 30), G.SubmitStatus, line);
+            }
+            else GUI.Label(new Rect(r.x, y, r.width, 40), G.SubmitStatus, new GUIStyle(heading) { fontSize = 24 });
+        }
+
+        void DrawLeaderboard(float W, float H)
+        {
+            var lb = Leaderboard.I;
+            GUI.color = Color.white;
+            var r = Track(new Rect(W * 0.5f - 460, 90, 920, 900));
+            GUI.Box(r, GUIContent.none, panel);
+            GUI.Box(r, GUIContent.none, panel); // doubled for a more solid backdrop over the board
+            GUI.Label(new Rect(r.x, r.y + 18, r.width, 50), "LEADERBOARD", new GUIStyle(heading) { fontSize = 40 });
+            GUI.Label(new Rect(r.x, r.y + 66, r.width, 28), "Best games against the computer, from players everywhere", small);
+            var cell = new GUIStyle(body) { fontSize = 21, wordWrap = false };
+            var dim = new GUIStyle(cell); dim.normal.textColor = new Color(0.75f, 0.7f, 0.6f);
+            float[] cx = { 30, 90, 360, 480, 600, 700, 790 };
+            string[] heads = { "#", "Name", "Score", "Level", "Result", "Moves", "Date" };
+            float y = r.y + 110;
+            for (int i = 0; i < heads.Length; i++) GUI.Label(new Rect(r.x + cx[i], y, 140, 30), heads[i], new GUIStyle(dim) { fontSize = 18 });
+            y += 36;
+            if (lb.Loading) GUI.Label(new Rect(r.x, y + 40, r.width, 40), "Fetching the scores…", small);
+            else if (!string.IsNullOrEmpty(lb.Error)) GUI.Label(new Rect(r.x, y + 40, r.width, 40), lb.Error, small);
+            else if (lb.Top.Count == 0) GUI.Label(new Rect(r.x, y + 40, r.width, 40), "No scores yet. Win a game to be the first!", small);
+            else
+            {
+                bool marked = false;
+                for (int i = 0; i < lb.Top.Count && i < 20; i++)
+                {
+                    var e = lb.Top[i];
+                    bool mine = !marked && !string.IsNullOrEmpty(lb.Highlight) && e.name == lb.Highlight;
+                    if (mine)
+                    {
+                        marked = true;
+                        var old = GUI.color;
+                        GUI.color = new Color(GoldC.r, GoldC.g, GoldC.b, 0.18f);
+                        GUI.DrawTexture(new Rect(r.x + 16, y - 2, r.width - 32, 32), lineTex);
+                        GUI.color = old;
+                    }
+                    var st = i < 3 ? new GUIStyle(cell) { normal = { textColor = GoldC } } : cell;
+                    GUI.Label(new Rect(r.x + cx[0], y, 60, 30), (i + 1).ToString(), st);
+                    GUI.Label(new Rect(r.x + cx[1], y, 260, 30), e.name, st);
+                    GUI.Label(new Rect(r.x + cx[2], y, 110, 30), e.score.ToString(), st);
+                    GUI.Label(new Rect(r.x + cx[3], y, 110, 30), e.difficulty, cell);
+                    GUI.Label(new Rect(r.x + cx[4], y, 100, 30), e.result == "win" ? "Win" : "Draw", cell);
+                    GUI.Label(new Rect(r.x + cx[5], y, 80, 30), e.moves.ToString(), cell);
+                    GUI.Label(new Rect(r.x + cx[6], y, 130, 30), e.date, dim);
+                    y += 34;
+                }
+            }
+            GUI.Label(new Rect(r.x + 30, r.yMax - 90, r.width - 60, 30), "Score: win 100 / 300 / 800 by level (a draw scores a third) + accuracy + quick win + captures. Hints and undos cost a little.", new GUIStyle(small) { fontSize = 16 });
+            if (GUI.Button(new Rect(r.x + r.width * 0.5f - 110, r.yMax - 60, 220, 46), "Close", button)) lb.Visible = false;
         }
 
         // ------------------------------------------------------------ piece voices and review

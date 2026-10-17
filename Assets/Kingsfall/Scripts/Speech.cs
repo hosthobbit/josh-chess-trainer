@@ -62,8 +62,7 @@ namespace Kingsfall
             src.volume = Volume;
             float target = 0f;
 #if UNITY_WEBGL && !UNITY_EDITOR
-            if (webSpeaking)
-                target = 0.3f + 0.5f * Mathf.Clamp01(1f - WebSpeechSinceWord() / 260f) + 0.1f * Mathf.Sin(Time.unscaledTime * 17f);
+            if (webSpeaking) target = WebSpeechLevel();
 #endif
             if (src.isPlaying)
             {
@@ -78,7 +77,10 @@ namespace Kingsfall
         /// <summary>Queue lines for synthesis so they are ready when needed.</summary>
         public void Prepare(IEnumerable<string> lines)
         {
-            if (!EngineJob.Threaded) return;
+#if UNITY_WEBGL && !UNITY_EDITOR
+            if (Engine == "browser") foreach (var l in lines) if (!string.IsNullOrWhiteSpace(l)) WebSpeechPrepare(l);
+            return;
+#endif
             lock (gate)
             {
                 foreach (var l in lines)
@@ -107,18 +109,23 @@ namespace Kingsfall
 
 #if UNITY_WEBGL && !UNITY_EDITOR
         [DllImport("__Internal")] static extern int WebSpeechAvailable();
-        [DllImport("__Internal")] static extern int WebSpeak(string text);
+        [DllImport("__Internal")] static extern void WebSpeechPrepare(string text);
+        [DllImport("__Internal")] static extern int WebSpeak(string text, float volume);
         [DllImport("__Internal")] static extern int WebSpeechState();
-        [DllImport("__Internal")] static extern float WebSpeechSinceWord();
+        [DllImport("__Internal")] static extern float WebSpeechLevel();
+        [DllImport("__Internal")] static extern int WebSpeechHeard();
         [DllImport("__Internal")] static extern void WebSpeechStop();
         bool webSpeaking;
 
         IEnumerator SayInBrowser(string text, int id)
         {
-            if (Engine != "browser" || Volume <= 0.01f || AudioListener.volume <= 0.01f || WebSpeak(text) == 0) yield break;
+            if (Engine == "none" && WebSpeechAvailable() == 1) Engine = "browser"; // page script may load after Awake
+            if (Engine != "browser" || Volume <= 0.01f || AudioListener.volume <= 0.01f || WebSpeak(text, Volume) == 0) yield break;
+            // the first time, the voice model may still be downloading: keep the subtitle up meanwhile
             float t = 0f;
-            while (WebSpeechState() == 0 && t < 3f && id == serial) { t += Time.unscaledDeltaTime; yield return null; }
-            if (WebSpeechState() != 1 || id != serial) yield break; // no voice actually started
+            while (WebSpeechState() == 0 && t < 30f && id == serial) { t += Time.unscaledDeltaTime; yield return null; }
+            if (id != serial) yield break;
+            if (WebSpeechState() != 1) { LastSayHadAudio = WebSpeechHeard() == 1; yield break; } // a short line can finish between frames
             webSpeaking = true;
             LastSayHadAudio = true;
             while (WebSpeechState() == 1 && id == serial) yield return null;

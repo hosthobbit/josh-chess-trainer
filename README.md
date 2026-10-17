@@ -25,6 +25,7 @@ Checkmate topples and crumbles the losing king. Promotion turns the pawn into a 
 - Play against the computer (Squire, Knight or Warlord difficulty) as White or Black, or two players on one screen
 - **Hint** button: the engine suggests your best move (the "trainer" part)
 - **The Grandmaster's Review**: when a game ends, Master Aldric the wizard rises beside the board and talks you through it out loud. He replays the turning points with glowing arrows (your move, the opponent's punishing reply, the better move), explains what went wrong, praises your best moves and finishes with tips on avoiding the loss next time. The engine analyses every move in the background while you play
+- **Leaderboard**: beat (or draw with) the computer to score points: a win is worth 100 / 300 / 800 by level (a draw a third of that), plus bonuses for accuracy, a quick win and captures. Hints and undos cost a little. Scores go on a shared online leaderboard (menu → Leaderboard), served by `games-api/chess-scores.php` on hosthobbit.com, which recalculates every score itself
 - **Talking pieces**: captured pieces plead, complain or crack a joke as the attacker closes in, then scream as they shatter, with a speech bubble over their head. Each piece type has its own voice
 - Undo, a move list, a tray of captured pieces with the material count, and a camera you can orbit and zoom
 - Battle Showcase mode that plays all six fights back to back
@@ -33,7 +34,7 @@ Checkmate topples and crumbles the losing king. Promotion turns the pawn into a 
 
 ## Playing
 
-**In your browser:** [hosthobbit.github.io/josh-chess-trainer](https://hosthobbit.github.io/josh-chess-trainer/). It's free with nothing to install; use a computer with a mouse. Online, the grandmaster speaks with your browser's built-in voice.
+**In your browser:** [hosthobbit.github.io/josh-chess-trainer](https://hosthobbit.github.io/josh-chess-trainer/). It's free with nothing to install; use a computer with a mouse. Online, the grandmaster's voice (Piper running inside the page) downloads once in the background, about 63 MB.
 
 **Linux (prebuilt):** run `./build.sh` once, then `./play.sh`.
 

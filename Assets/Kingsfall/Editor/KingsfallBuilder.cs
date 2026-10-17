@@ -1058,6 +1058,7 @@ namespace Kingsfall.EditorTools
             game.AddComponent<Speech>();
             game.AddComponent<PieceVoices>();
             game.AddComponent<Grandmaster>();
+            game.AddComponent<Leaderboard>();
             var amb = game.AddComponent<Ambience>();
             amb.Fires = fires.ToArray();
             amb.FireLights = fireLights.ToArray();

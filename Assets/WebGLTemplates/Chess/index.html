@@ -14,6 +14,7 @@
     <meta property="og:image:height" content="630">
     <meta name="twitter:card" content="summary_large_image">
     <link rel="icon" type="image/png" href="favicon.png">
+    <script src="kf-tts.js"></script>
     <style>
       :root { --gold: #f5c873; --parchment: #ede3cc; --ink: #0b0806; --panel: rgba(22, 16, 12, 0.88); }
       html, body { margin: 0; height: 100%; background: var(--ink); color: var(--parchment); overflow: hidden;
@@ -74,7 +75,7 @@
       window.addEventListener("resize", fit);
       fit();
 
-      // browsers load their speech voices lazily; ask early so the grandmaster has one ready
+      // browsers load their own speech voices lazily; ask early in case the fallback is needed
       if ("speechSynthesis" in window) { window.speechSynthesis.getVoices(); }
 
       function fail(msg) {
@@ -116,6 +117,8 @@
             document.getElementById("status").textContent = p < 0.9 ? "Loading… " + Math.round(p * 100) + "%" : "Setting up the board…";
           }).then(function (instance) {
             window.unityInstance = instance;
+            // fetch the grandmaster's voice in the background (63 MB, once; the browser keeps it)
+            if (window.kfTts) window.kfTts.init();
             document.getElementById("loader").style.display = "none";
             document.getElementById("credit").style.display = "none";
             canvas.focus();

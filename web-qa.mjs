@@ -23,7 +23,7 @@ if (process.env.LVP_ICD) env.VK_DRIVER_FILES = env.VK_ICD_FILENAMES = process.en
 const chrome = spawn(process.env.CHROME || "chromium", [
   "--headless=new", `--remote-debugging-port=${port}`, `--user-data-dir=${profile}`,
   "--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist",
-  "--disable-vulkan", "--mute-audio",
+  "--disable-vulkan", "--mute-audio", "--autoplay-policy=no-user-gesture-required",
   "--window-size=1280,720", "--no-first-run", "--no-default-browser-check", "about:blank",
 ], { env, stdio: ["ignore", "ignore", "pipe"] });
 let chromeErr = "";
@@ -90,14 +90,28 @@ async function main() {
     await sleep(60);
     await s("Input.dispatchMouseEvent", { type: "mouseReleased", x, y, button: "left", clickCount: 1 });
   };
+  await click(1072, 615); // Leaderboard
+  await sleep(5000);
+  await shot("01b_leaderboard");
+  await key("keyDown", "Escape", "Escape", 27); await sleep(80); await key("keyUp", "Escape", "Escape", 27);
+  await sleep(1500);
   await click(960, 332 + 26 + 31);
   await sleep(4000);
   await shot("02_game");
+  // a scored win: game-over panel with the score and the name box
+  await evalJs(`window.unityInstance.SendMessage("Kingsfall", "WebTest", "win")`);
+  await sleep(15000);
+  await click(895, 595); // name box
+  for (const ch of "Josh") { await key("keyDown", "Key" + ch.toUpperCase(), ch, ch.toUpperCase().charCodeAt(0), ch); await key("keyUp", "Key" + ch.toUpperCase(), ch, ch.toUpperCase().charCodeAt(0)); }
+  await sleep(2000);
+  await shot("02b_score");
+  if (process.env.SKIP_REVIEW) return;
   // the grandmaster's review of a scripted scholar's mate
   await evalJs(`window.unityInstance.SendMessage("Kingsfall", "WebTest", "review")`);
   for (let i = 0; i < 12; i++) {
     await sleep(5000);
     await shot(`03_review_${String(i).padStart(2, "0")}`);
+    console.log("voice: piper", await evalJs("window.kfTts && kfTts.status()"), "state", await evalJs("window.kfTts && kfTts.state()"));
     if (logs.some((l) => l.includes("KINGSFALL_REVIEW_DONE"))) break;
   }
   console.log("review beats:", logs.filter((l) => l.includes("KINGSFALL_REVIEW_BEAT")).length,

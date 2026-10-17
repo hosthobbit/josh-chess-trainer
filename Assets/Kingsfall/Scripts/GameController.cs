@@ -42,6 +42,14 @@ namespace Kingsfall
         public GameReviewResult LastReview { get; private set; }
         public bool CanReview => GameOver && !Busy && !Reviewing && (Mode == GameMode.VsAI || Mode == GameMode.TwoPlayer) && Played.Count > 0;
         readonly ReviewAnalyser analyser = new ReviewAnalyser();
+        Task<GameReviewResult> reviewTask;
+
+        // ---- leaderboard score (games against the computer)
+        public GameScore Score { get; private set; }
+        public bool ScorePending => reviewTask != null && Score == null && Mode == GameMode.VsAI;
+        public bool ScoreSubmitted;
+        public string SubmitStatus = "";
+        int hintsUsed, undosUsed;
         int requestedBeat = -1;
         bool endReview;
         float musicBeforeReview = -1f;
@@ -98,6 +106,7 @@ namespace Kingsfall
             ResetWorld();
             Mode = GameMode.VsAI;
             HumanColour = humanColour;
+            hintsUsed = undosUsed = 0;
             NewBoard();
             CameraRig.I.AutoOrbit = false;
             CameraRig.I.UserControl = true;
@@ -108,6 +117,7 @@ namespace Kingsfall
         {
             ResetWorld();
             Mode = GameMode.TwoPlayer;
+            hintsUsed = undosUsed = 0;
             HumanColour = Board.White;
             NewBoard();
             CameraRig.I.AutoOrbit = false;
@@ -139,6 +149,7 @@ namespace Kingsfall
             count = Mathf.Min(count, Played.Count);
             if (count == 0) return;
             var keep = Played.GetRange(0, Played.Count - count);
+            undosUsed++;
             ResetWorld();
             NewBoard();
             foreach (var m in keep) ApplyInstant(m);
@@ -175,6 +186,7 @@ namespace Kingsfall
         {
             if (!IsHumanTurn || hintTask != null) return;
             var snapshot = Board.Clone();
+            hintsUsed++;
             HintText = "Thinking…";
             hintTask = EngineJob.Start(() => new ChessAI().FindBestMove(snapshot, Difficulty.Warlord));
         }
@@ -242,6 +254,10 @@ namespace Kingsfall
             GameOver = false;
             view.Spawn(Board);
             LastReview = null;
+            reviewTask = null;
+            Score = null;
+            ScoreSubmitted = false;
+            SubmitStatus = "";
             if (Mode == GameMode.VsAI || Mode == GameMode.TwoPlayer) analyser.Enqueue(Board);
         }
 
@@ -297,6 +313,7 @@ namespace Kingsfall
             }
 
             PollHint();
+            UpdateScore();
             if (IsHumanTurn && promoChoices == null) HandleInput();
             else GameUI.I?.ConsumeClick(); // drop clicks made while it isn't the player's turn
         }
@@ -445,10 +462,60 @@ namespace Kingsfall
             Skipping = false;
             Busy = false;
             if (Mode == GameMode.TwoPlayer && AutoFlipTwoPlayer && !GameOver) CameraRig.I.SetSide(Board.Side);
+            if (GameOver && (Mode == GameMode.VsAI || Mode == GameMode.TwoPlayer) && Played.Count > 0) StartReviewBuild();
             if (GameOver && ReviewEnabled && CanReview) StartCoroutine(ReviewAfterDelay(gen));
         }
 
         // ------------------------------------------------------------ grandmaster review
+
+        void StartReviewBuild()
+        {
+            var moves = new List<Move>(Played);
+            var status = Status;
+            bool vsAI = Mode == GameMode.VsAI;
+            int human = HumanColour;
+            reviewTask = LastReview != null ? Task.FromResult(LastReview)
+                : EngineJob.Start(() => new GameReviewBuilder(moves, status, vsAI, human, analyser).Build());
+        }
+
+        void UpdateScore()
+        {
+            if (!ScorePending || !reviewTask.IsCompleted) return;
+            if (reviewTask.IsFaulted) { Debug.LogException(reviewTask.Exception); reviewTask = null; return; }
+            var r = reviewTask.Result;
+            LastReview = r;
+            bool mated = Status == GameStatus.Checkmate;
+            int enemy = HumanColour ^ 1;
+            int[] values = { 0, 1, 3, 3, 5, 9, 0 };
+            int captured = 0;
+            foreach (var t in Captured[enemy]) captured += values[(int)t];
+            Score = new GameScore
+            {
+                Won = mated && Board.Side == enemy,
+                Drew = !mated && Status != GameStatus.Ongoing,
+                Difficulty = (int)Difficulty,
+                Moves = Mathf.Max(2, r.Moves),
+                Accuracy = r.Moves > 0 ? Mathf.RoundToInt(100f * r.Excellent / r.Moves) : 0,
+                Captured = Mathf.Min(39, captured),
+                Hints = hintsUsed,
+                Undos = undosUsed,
+            };
+        }
+
+        public void SubmitScore(string name)
+        {
+            if (Score == null || ScoreSubmitted || Leaderboard.Compute(Score) <= 0) return;
+            ScoreSubmitted = true;
+            SubmitStatus = "Sending…";
+            PlayerPrefs.SetString("playerName", name);
+            PlayerPrefs.Save();
+            StartCoroutine(Leaderboard.I.Submit(name, Score, (ok, msg) =>
+            {
+                SubmitStatus = msg;
+                if (!ok) ScoreSubmitted = false;
+                else Leaderboard.I.Show();
+            }));
+        }
 
         IEnumerator ReviewAfterDelay(int gen)
         {
@@ -508,9 +575,8 @@ namespace Kingsfall
             bool vsAI = Mode == GameMode.VsAI;
             int human = HumanColour;
             int side = vsAI ? human : Board.White;
-            var build = LastReview != null
-                ? Task.FromResult(LastReview)
-                : EngineJob.Start(() => new GameReviewBuilder(moves, status, vsAI, human, analyser).Build());
+            if (reviewTask == null) StartReviewBuild();
+            var build = reviewTask;
             reviewSide = side;
             ReviewCamera(side, false);
             yield return Grandmaster.I.Appear(side);
@@ -668,6 +734,23 @@ namespace Kingsfall
             if (what == "mute") SoundBank.I.MasterVolume = 0f;
             if (what == "review") { ResetWorld(); StartCoroutine(ReviewShots()); }
             if (what == "next") ReviewNext();
+            if (what == "win")
+            {
+                // scholar's mate played by the human as white: a scored win for the game-over panel
+                ResetWorld();
+                GameUI.I.ShowMenu = false;
+                Mode = GameMode.VsAI;
+                HumanColour = Board.White;
+                hintsUsed = undosUsed = 0;
+                NewBoard();
+                foreach (var u in new[] { "e2e4", "e7e5", "f1c4", "b8c6", "d1h5", "g8f6", "h5f7" })
+                    ApplyInstant(Board.LegalMoves().Find(x => x.ToString() == u));
+                view.Spawn(Board);
+                GameOver = true;
+                GameOverTitle = "CHECKMATE";
+                GameOverDetail = "White conquers the realm";
+                StartReviewBuild();
+            }
         }
 
         // Scholar's mate with the human as black, then the grandmaster's review of it.
