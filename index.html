@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en-gb">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+    <title>Josh's Chess Trainer: play free in your browser</title>
+    <meta name="description" content="3D battle chess where every capture is a fight. Talking pieces, three AI levels, hints, and a wizard grandmaster who reviews your game out loud. Free, no download. Developed by Host Hobbit.">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Josh's Chess Trainer: play free in your browser">
+    <meta property="og:description" content="3D battle chess with talking pieces and a grandmaster who explains your mistakes. Free, no download.">
+    <meta property="og:url" content="https://hosthobbit.github.io/josh-chess-trainer/">
+    <meta property="og:image" content="https://hosthobbit.github.io/josh-chess-trainer/og.jpg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="Chess Trainer">
+    <meta name="theme-color" content="#0b0806">
+    <script src="kf-tts.js"></script>
+    <style>
+      :root { --gold: #f5c873; --parchment: #ede3cc; --ink: #0b0806; --panel: rgba(22, 16, 12, 0.88); }
+      html, body { margin: 0; height: 100%; background: var(--ink); color: var(--parchment); overflow: hidden;
+        font-family: Georgia, "Noto Serif", "Times New Roman", serif; }
+      #stage { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
+      #unity-canvas { display: block; background: #000; outline: none; touch-action: none; -webkit-user-select: none; user-select: none; }
+      #fullscreen { display: none; position: fixed; top: 6px; right: 6px; z-index: 5; width: 40px; height: 40px; border-radius: 6px;
+        border: 1px solid rgba(245, 200, 115, 0.6); background: rgba(22, 16, 12, 0.7); color: var(--gold); font-size: 22px; line-height: 1; padding: 0; }
+      #rotate { display: none; position: fixed; inset: 0; z-index: 10; background: var(--ink); color: var(--gold); align-items: center;
+        justify-content: center; flex-direction: column; gap: 18px; text-align: center; padding: 24px; font-size: 22px; line-height: 1.5; }
+      #rotate .phone { width: 46px; height: 80px; border: 4px solid var(--gold); border-radius: 9px; animation: turn 2.2s ease-in-out infinite; }
+      @keyframes turn { 0%, 30% { transform: rotate(0deg); } 60%, 100% { transform: rotate(-90deg); } }
+      @media (orientation: portrait) and (max-width: 1000px) { .touch #rotate { display: flex; } }
+      #loader { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+        gap: 18px; background: radial-gradient(ellipse at 50% 35%, #3a2412 0%, var(--ink) 70%); text-align: center; padding: 16px; }
+      #loader h1 { margin: 0; font-size: clamp(32px, 6.5vw, 74px); letter-spacing: 0.04em; color: var(--gold);
+        text-shadow: 0 0 22px rgba(245, 160, 60, 0.45), 0 2px 0 #000; }
+      #loader .tag { color: #c9b48f; letter-spacing: 0.35em; font-size: clamp(12px, 1.6vw, 17px); margin-top: -6px; }
+      #bar { width: min(520px, 80vw); height: 14px; border: 2px solid var(--gold); border-radius: 3px; padding: 2px; box-sizing: border-box; }
+      #fill { height: 100%; width: 0%; background: linear-gradient(90deg, #b8742a, var(--gold)); transition: width 0.15s; }
+      #status { font-size: 15px; color: #b9a68a; min-height: 1.2em; }
+      #keys { background: var(--panel); border: 1px solid rgba(245, 200, 115, 0.35); border-radius: 6px; padding: 12px 20px;
+        font-size: 15px; line-height: 1.8; text-align: left; }
+      #keys b { color: var(--gold); font-weight: normal; display: inline-block; min-width: 9em; }
+      #credit { position: fixed; bottom: 10px; left: 0; right: 0; text-align: center; font-size: 12px; letter-spacing: 0.25em; color: #9a8a70; }
+      #credit a { color: inherit; }
+      #keys .t { display: none; }
+      .touch #keys .m { display: none; }
+      .touch #keys .t { display: block; }
+      #error { display: none; color: #ff8a7a; max-width: 40em; line-height: 1.6; }
+    </style>
+  </head>
+  <body>
+    <div id="stage"><canvas id="unity-canvas" tabindex="-1"></canvas></div>
+    <div id="loader">
+      <h1>JOSH'S CHESS TRAINER</h1>
+      <div class="tag">A WAR OF STONE AND FIRE</div>
+      <div id="bar"><div id="fill"></div></div>
+      <div id="status">Loading…</div>
+      <div id="keys">
+        <div class="m"><b>Move a piece</b>click it, then click a square</div>
+        <div class="m"><b>Turn the board</b>right-drag or A / D</div>
+        <div class="m"><b>Zoom</b>mouse wheel</div>
+        <div class="m"><b>Skip a battle</b>Space</div>
+        <div class="m"><b>Menu</b>Esc</div>
+        <div class="t"><b>Move a piece</b>tap it, then tap a square</div>
+        <div class="t"><b>Turn the board</b>drag with two fingers</div>
+        <div class="t"><b>Zoom</b>pinch</div>
+        <div class="t"><b>App icon</b>Share → Add to Home Screen</div>
+        <div><b>Sound</b>on! The pieces talk and the grandmaster speaks</div>
+      </div>
+      <div id="error"></div>
+    </div>
+    <button id="fullscreen" aria-label="Full screen" title="Full screen">⛶</button>
+    <div id="rotate"><div class="phone"></div>Turn your device sideways to play</div>
+    <div id="credit">DEVELOPED BY <a href="https://hosthobbit.com" target="_blank" rel="noopener">HOST HOBBIT</a></div>
+    <script>
+      var canvas = document.querySelector("#unity-canvas");
+      // iPadOS reports itself as a Mac, so also count touch-first devices
+      var mobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent));
+      if (mobile) document.body.classList.add("touch");
+
+      // desktop: a 16:9 game area as big as the window allows; phones and tablets: the whole screen
+      function fit() {
+        var w = window.innerWidth, h = window.innerHeight;
+        if (!mobile) { if (w / h > 16 / 9) w = Math.round(h * 16 / 9); else h = Math.round(w * 9 / 16); }
+        canvas.style.width = w + "px";
+        canvas.style.height = h + "px";
+      }
+      window.addEventListener("resize", fit);
+      fit();
+
+      // browsers load their own speech voices lazily; ask early in case the fallback is needed
+      if ("speechSynthesis" in window) { window.speechSynthesis.getVoices(); }
+
+      function fail(msg) {
+        var e = document.getElementById("error");
+        e.style.display = "block";
+        e.textContent = "Sorry, the game couldn't start in this browser: " + msg + " Try an up-to-date Chrome, Edge or Firefox on a computer.";
+        document.getElementById("status").textContent = "";
+      }
+
+      function start() {
+        var script = document.createElement("script");
+        script.src = "Build/f8aae83f85f1b7547388922c4a361ffa.loader.js";
+        script.onerror = function () { fail("the loader didn't download."); };
+        script.onload = function () {
+          createUnityInstance(canvas, {
+            arguments: [],
+            dataUrl: "Build/523f84c79f59b8338538851b53b55538.data.unityweb",
+            frameworkUrl: "Build/312ec3a85abfc1fcb018854fc31455e8.framework.js.unityweb",
+            codeUrl: "Build/c6c0d61786f0ad6cb7a258d7b9fd2a78.wasm.unityweb",
+            streamingAssetsUrl: "StreamingAssets",
+            companyName: "Host Hobbit",
+            productName: "Josh's Chess Trainer",
+            productVersion: "1.0",
+            // render at CSS-pixel size: keeps laptops with high-DPI screens smooth
+            devicePixelRatio: mobile ? Math.min(window.devicePixelRatio || 1, 1.5) : 1,
+          }, function (p) {
+            document.getElementById("fill").style.width = Math.round(p * 100) + "%";
+            document.getElementById("status").textContent = p < 0.9 ? "Loading… " + Math.round(p * 100) + "%" : "Setting up the board…";
+          }).then(function (instance) {
+            window.unityInstance = instance;
+            // fetch the grandmaster's voice in the background (63 MB, once; the browser keeps it)
+            if (window.kfTts) window.kfTts.init(mobile);
+            document.getElementById("loader").style.display = "none";
+            document.getElementById("credit").style.display = "none";
+            canvas.focus();
+            canvas.addEventListener("pointerdown", function () { canvas.focus(); });
+          }).catch(function (message) { fail(String(message)); });
+        };
+        document.body.appendChild(script);
+      }
+
+      // touch devices: a small full-screen button (forcing full screen on the first tap misbehaves)
+      var canFull = !!(document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen);
+      if (mobile && canFull && !window.navigator.standalone && !matchMedia("(display-mode: fullscreen)").matches) {
+        var fsBtn = document.getElementById("fullscreen");
+        fsBtn.style.display = "block";
+        document.addEventListener("fullscreenchange", function () { fsBtn.style.display = document.fullscreenElement ? "none" : "block"; });
+        fsBtn.addEventListener("click", function () {
+          var el = document.documentElement;
+          var req = el.requestFullscreen || el.webkitRequestFullscreen;
+          if (req && !document.fullscreenElement && !window.navigator.standalone) {
+            try {
+              var p = req.call(el);
+              if (p && p.then) p.then(function () { if (screen.orientation && screen.orientation.lock) screen.orientation.lock("landscape").catch(function () {}); }).catch(function () {});
+            } catch (e) {}
+          }
+        });
+      }
+      start();
+    </script>
+  </body>
+</html>
