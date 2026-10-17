@@ -108,7 +108,9 @@ namespace Kingsfall.EditorTools
             PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Gzip;
             PlayerSettings.WebGL.decompressionFallback = true;
             PlayerSettings.WebGL.dataCaching = true;
-            PlayerSettings.WebGL.nameFilesAsHashes = false;
+            // unique file names per build: browsers may cache files for 10 min, and mixing
+            // an old data file with new code crashes at startup ("Maximum call stack size exceeded")
+            PlayerSettings.WebGL.nameFilesAsHashes = true;
             PlayerSettings.WebGL.exceptionSupport = WebGLExceptionSupport.ExplicitlyThrownExceptionsOnly;
             PlayerSettings.WebGL.template = "PROJECT:Chess";
             PlayerSettings.runInBackground = false;
