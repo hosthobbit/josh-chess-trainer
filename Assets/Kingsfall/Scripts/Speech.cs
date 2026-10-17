@@ -6,13 +6,17 @@ using System.IO;
 using System.Threading;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
+#if UNITY_WEBGL && !UNITY_EDITOR
+using System.Runtime.InteropServices;
+#endif
 
 namespace Kingsfall
 {
     /// <summary>
-    /// Runtime text-to-speech for the grandmaster. Uses the Piper neural voice bundled in
-    /// StreamingAssets/Piper, falls back to the system espeak-ng, and finally to silence
-    /// (the subtitles still show). Lines are synthesised on a worker thread ahead of time.
+    /// Runtime text-to-speech for the grandmaster. Desktop: the Piper neural voice copied into
+    /// the build's StreamingAssets/Piper (Tools/piper in the editor), falling back to the system
+    /// espeak-ng; lines are synthesised on a worker thread ahead of time. Browser: the browser's
+    /// own speechSynthesis voice. With no voice at all the subtitles still show.
     /// </summary>
     public class Speech : MonoBehaviour
     {
@@ -42,6 +46,13 @@ namespace Kingsfall
             src.playOnAwake = false;
             src.spatialBlend = 0f;
             piperDir = Path.Combine(Application.streamingAssetsPath, "Piper");
+#if UNITY_EDITOR
+            if (!File.Exists(Path.Combine(piperDir, "piper"))) piperDir = Path.GetFullPath(Path.Combine(Application.dataPath, "../Tools/piper"));
+#endif
+#if UNITY_WEBGL && !UNITY_EDITOR
+            Engine = WebSpeechAvailable() == 1 ? "browser" : "none";
+            return;
+#endif
             tempDir = Path.Combine(Application.temporaryCachePath, "speech");
             Directory.CreateDirectory(tempDir);
         }
@@ -50,6 +61,10 @@ namespace Kingsfall
         {
             src.volume = Volume;
             float target = 0f;
+#if UNITY_WEBGL && !UNITY_EDITOR
+            if (webSpeaking)
+                target = 0.3f + 0.5f * Mathf.Clamp01(1f - WebSpeechSinceWord() / 260f) + 0.1f * Mathf.Sin(Time.unscaledTime * 17f);
+#endif
             if (src.isPlaying)
             {
                 src.GetOutputData(scope, 0);
@@ -63,6 +78,7 @@ namespace Kingsfall
         /// <summary>Queue lines for synthesis so they are ready when needed.</summary>
         public void Prepare(IEnumerable<string> lines)
         {
+            if (!EngineJob.Threaded) return;
             lock (gate)
             {
                 foreach (var l in lines)
@@ -79,7 +95,36 @@ namespace Kingsfall
         int serial;
 
         /// <summary>Stops speech, including any line still waiting to be synthesised.</summary>
-        public void Stop() { serial++; if (src) src.Stop(); }
+        public void Stop()
+        {
+            serial++;
+            if (src) src.Stop();
+#if UNITY_WEBGL && !UNITY_EDITOR
+            if (webSpeaking || Engine == "browser") WebSpeechStop();
+            webSpeaking = false;
+#endif
+        }
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+        [DllImport("__Internal")] static extern int WebSpeechAvailable();
+        [DllImport("__Internal")] static extern int WebSpeak(string text);
+        [DllImport("__Internal")] static extern int WebSpeechState();
+        [DllImport("__Internal")] static extern float WebSpeechSinceWord();
+        [DllImport("__Internal")] static extern void WebSpeechStop();
+        bool webSpeaking;
+
+        IEnumerator SayInBrowser(string text, int id)
+        {
+            if (Engine != "browser" || Volume <= 0.01f || AudioListener.volume <= 0.01f || WebSpeak(text) == 0) yield break;
+            float t = 0f;
+            while (WebSpeechState() == 0 && t < 3f && id == serial) { t += Time.unscaledDeltaTime; yield return null; }
+            if (WebSpeechState() != 1 || id != serial) yield break; // no voice actually started
+            webSpeaking = true;
+            LastSayHadAudio = true;
+            while (WebSpeechState() == 1 && id == serial) yield return null;
+            webSpeaking = false;
+        }
+#endif
 
         /// <summary>True if the last finished Say actually produced audio.</summary>
         public bool LastSayHadAudio { get; private set; }
@@ -91,6 +136,10 @@ namespace Kingsfall
             int id = serial;
             LastSayHadAudio = false;
             if (string.IsNullOrWhiteSpace(text)) yield break;
+#if UNITY_WEBGL && !UNITY_EDITOR
+            yield return SayInBrowser(text, id);
+            yield break;
+#endif
             Prepare(new[] { text });
             float t = 0f;
             while (t < maxWait)

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en-gb">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Josh's Chess Trainer: play free in your browser</title>
+    <meta name="description" content="3D battle chess where every capture is a fight. Talking pieces, three AI levels, hints, and a wizard grandmaster who reviews your game out loud. Free, no download. Developed by Host Hobbit.">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Josh's Chess Trainer: play free in your browser">
+    <meta property="og:description" content="3D battle chess with talking pieces and a grandmaster who explains your mistakes. Free, no download.">
+    <meta property="og:url" content="https://hosthobbit.github.io/josh-chess-trainer/">
+    <meta property="og:image" content="https://hosthobbit.github.io/josh-chess-trainer/og.jpg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="icon" type="image/png" href="favicon.png">
+    <style>
+      :root { --gold: #f5c873; --parchment: #ede3cc; --ink: #0b0806; --panel: rgba(22, 16, 12, 0.88); }
+      html, body { margin: 0; height: 100%; background: var(--ink); color: var(--parchment); overflow: hidden;
+        font-family: Georgia, "Noto Serif", "Times New Roman", serif; }
+      #stage { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
+      #unity-canvas { display: block; background: #000; outline: none; }
+      #loader { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+        gap: 18px; background: radial-gradient(ellipse at 50% 35%, #3a2412 0%, var(--ink) 70%); text-align: center; padding: 16px; }
+      #loader h1 { margin: 0; font-size: clamp(32px, 6.5vw, 74px); letter-spacing: 0.04em; color: var(--gold);
+        text-shadow: 0 0 22px rgba(245, 160, 60, 0.45), 0 2px 0 #000; }
+      #loader .tag { color: #c9b48f; letter-spacing: 0.35em; font-size: clamp(12px, 1.6vw, 17px); margin-top: -6px; }
+      #bar { width: min(520px, 80vw); height: 14px; border: 2px solid var(--gold); border-radius: 3px; padding: 2px; box-sizing: border-box; }
+      #fill { height: 100%; width: 0%; background: linear-gradient(90deg, #b8742a, var(--gold)); transition: width 0.15s; }
+      #status { font-size: 15px; color: #b9a68a; min-height: 1.2em; }
+      #keys { background: var(--panel); border: 1px solid rgba(245, 200, 115, 0.35); border-radius: 6px; padding: 12px 20px;
+        font-size: 15px; line-height: 1.8; text-align: left; }
+      #keys b { color: var(--gold); font-weight: normal; display: inline-block; min-width: 9em; }
+      #credit { position: fixed; bottom: 10px; left: 0; right: 0; text-align: center; font-size: 12px; letter-spacing: 0.25em; color: #9a8a70; }
+      #credit a { color: inherit; }
+      #mobile { display: none; max-width: 30em; color: var(--gold); line-height: 1.6; }
+      #mobile a { color: var(--parchment); }
+      .is-mobile #mobile { display: block; }
+      .is-mobile #bar, .is-mobile #status, .is-mobile #keys { display: none; }
+      #error { display: none; color: #ff8a7a; max-width: 40em; line-height: 1.6; }
+    </style>
+  </head>
+  <body>
+    <div id="stage"><canvas id="unity-canvas" tabindex="-1"></canvas></div>
+    <div id="loader">
+      <h1>JOSH'S CHESS TRAINER</h1>
+      <div class="tag">A WAR OF STONE AND FIRE</div>
+      <div id="bar"><div id="fill"></div></div>
+      <div id="status">Loading…</div>
+      <div id="keys">
+        <div><b>Move a piece</b>click it, then click a square</div>
+        <div><b>Turn the board</b>right-drag or A / D</div>
+        <div><b>Zoom</b>mouse wheel</div>
+        <div><b>Skip a battle</b>Space</div>
+        <div><b>Menu</b>Esc</div>
+        <div><b>Sound</b>on! The pieces talk and the grandmaster speaks</div>
+      </div>
+      <div id="mobile">This game is built for a computer with a mouse, so it may be slow or fiddly on a phone.<br>
+        For the best battle, open this link on a computer. <a href="#" id="anyway">Try anyway</a></div>
+      <div id="error"></div>
+    </div>
+    <div id="credit">DEVELOPED BY <a href="https://hosthobbit.com" target="_blank" rel="noopener">HOST HOBBIT</a></div>
+    <script>
+      var canvas = document.querySelector("#unity-canvas");
+      var mobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+      // keep a 16:9 game area that fills as much of the window as it can
+      function fit() {
+        var w = window.innerWidth, h = window.innerHeight;
+        if (w / h > 16 / 9) w = Math.round(h * 16 / 9); else h = Math.round(w * 9 / 16);
+        canvas.style.width = w + "px";
+        canvas.style.height = h + "px";
+      }
+      window.addEventListener("resize", fit);
+      fit();
+
+      // browsers load their speech voices lazily; ask early so the grandmaster has one ready
+      if ("speechSynthesis" in window) { window.speechSynthesis.getVoices(); }
+
+      function fail(msg) {
+        var e = document.getElementById("error");
+        e.style.display = "block";
+        e.textContent = "Sorry, the game couldn't start in this browser: " + msg + " Try an up-to-date Chrome, Edge or Firefox on a computer.";
+        document.getElementById("status").textContent = "";
+      }
+
+      function start() {
+        document.body.classList.remove("is-mobile");
+        var script = document.createElement("script");
+        script.src = "Build/{{{ LOADER_FILENAME }}}";
+        script.onerror = function () { fail("the loader didn't download."); };
+        script.onload = function () {
+          createUnityInstance(canvas, {
+            arguments: [],
+#if PROGRESSIVE_ASSET_LOADING
+            primaryDataUrls: {{{ JSON.stringify(PRIMARY_DATA_FILES) }}},
+            secondaryDataUrls: {{{ JSON.stringify(SECONDARY_DATA_FILES) }}},
+#else
+            dataUrl: "Build/{{{ DATA_FILENAME }}}",
+#endif
+            frameworkUrl: "Build/{{{ FRAMEWORK_FILENAME }}}",
+#if USE_WASM
+            codeUrl: "Build/{{{ CODE_FILENAME }}}",
+#endif
+#if SYMBOLS_FILENAME
+            symbolsUrl: "Build/{{{ SYMBOLS_FILENAME }}}",
+#endif
+            streamingAssetsUrl: "StreamingAssets",
+            companyName: {{{ JSON.stringify(COMPANY_NAME) }}},
+            productName: {{{ JSON.stringify(PRODUCT_NAME) }}},
+            productVersion: {{{ JSON.stringify(PRODUCT_VERSION) }}},
+            // render at CSS-pixel size: keeps laptops with high-DPI screens smooth
+            devicePixelRatio: 1,
+          }, function (p) {
+            document.getElementById("fill").style.width = Math.round(p * 100) + "%";
+            document.getElementById("status").textContent = p < 0.9 ? "Loading… " + Math.round(p * 100) + "%" : "Setting up the board…";
+          }).then(function (instance) {
+            window.unityInstance = instance;
+            document.getElementById("loader").style.display = "none";
+            document.getElementById("credit").style.display = "none";
+            canvas.focus();
+            canvas.addEventListener("pointerdown", function () { canvas.focus(); });
+          }).catch(function (message) { fail(String(message)); });
+        };
+        document.body.appendChild(script);
+      }
+
+      if (mobile) {
+        document.body.classList.add("is-mobile");
+        document.getElementById("anyway").addEventListener("click", function (e) { e.preventDefault(); start(); });
+      } else start();
+    </script>
+  </body>
+</html>

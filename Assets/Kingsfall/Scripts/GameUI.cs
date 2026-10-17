@@ -236,7 +236,7 @@ namespace Kingsfall
             SoundBank.I.MusicVolume = GUILayout.HorizontalSlider(SoundBank.I.MusicVolume, 0f, 1f, GUILayout.Height(30));
             GUILayout.EndHorizontal();
             GUILayout.FlexibleSpace();
-            if (GUILayout.Button("Quit", button, GUILayout.Height(46))) Application.Quit();
+            if (Application.platform != RuntimePlatform.WebGLPlayer && GUILayout.Button("Quit", button, GUILayout.Height(46))) Application.Quit();
             GUILayout.EndArea();
 
             GUI.Label(new Rect(0, H - 46, W, 30), "Left-click to move  ·  Right-drag or A/D to orbit  ·  Scroll to zoom  ·  Space skips a battle  ·  Esc for menu", small);

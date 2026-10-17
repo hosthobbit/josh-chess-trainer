@@ -129,6 +129,8 @@ namespace Kingsfall.Chess
                 default: maxDepth = 64; timeLimitMs = 3000; noise = 0; break;
             }
 
+            // browsers search on the main thread: keep the pause short
+            if (!EngineJob.Threaded) timeLimitMs = Math.Min(timeLimitMs, difficulty == Difficulty.Warlord ? 1600 : 900);
             Array.Clear(killers, 0, killers.Length);
             clock = Stopwatch.StartNew();
             aborted = false;

@@ -33,6 +33,8 @@ Checkmate topples and crumbles the losing king. Promotion turns the pawn into a 
 
 ## Playing
 
+**In your browser:** [hosthobbit.github.io/josh-chess-trainer](https://hosthobbit.github.io/josh-chess-trainer/). It's free with nothing to install; use a computer with a mouse. Online, the grandmaster speaks with your browser's built-in voice.
+
 **Linux (prebuilt):** run `./build.sh` once, then `./play.sh`.
 
 **Unity Editor:** open the folder with Unity **6000.6.3f1** and press Play. The game scene opens automatically.
@@ -44,6 +46,10 @@ Controls: left-click to select and move · right-drag or A/D to orbit · scroll 
 `./build.sh` regenerates every asset and the scene, then builds the Linux player to `Build/Linux/`. It takes about 3 minutes, and the log goes to `Logs/build.log`. If Unity isn't at `~/Unity/Hub/Editor/6000.6.3f1`, set `UNITY=/path/to/Editor/Unity`.
 
 Voices use [Piper](https://github.com/rhasspy/piper), an offline neural text-to-speech engine. It isn't kept in git: the first `./build.sh` runs `Tools/setup_piper.sh`, which downloads it (~380 MB). The grandmaster speaks live through the Piper copy bundled in the build (falling back to `espeak-ng`, then to subtitles only). The piece voices are pre-made clips in `Resources/Voices`; edit the lines in `Tools/make_voices.py` and run it to regenerate them.
+
+`./build-web.sh` builds the browser version to `Build/WebGL` (the page template is `Assets/WebGLTemplates/Chess`); it's published by pushing that folder plus a `.nojekyll` file to the `gh-pages` branch. Browsers have no threads, so there the engine runs on the main thread with shorter thinking times (`Scripts/EngineJob.cs`).
+
+Testing without a GPU: `./qa.sh <dir>` runs the scripted screenshot test on a virtual screen with software rendering, and `node web-qa.mjs <url> <dir>` drives the browser build in headless Chromium.
 
 Code lives in `Assets/Kingsfall/`:
 - `Scripts/ChessEngine.cs`, `Scripts/ChessAI.cs`: the rules engine and the alpha-beta AI

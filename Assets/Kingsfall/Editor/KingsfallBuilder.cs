@@ -67,13 +67,67 @@ namespace Kingsfall.EditorTools
                 options = BuildOptions.None,
             });
             if (report.summary.result != BuildResult.Succeeded) throw new Exception("Build failed: " + report.summary.result);
+            CopyPiper();
             Debug.Log($"KINGSFALL_BUILD_OK size={report.summary.totalSize / (1024 * 1024)}MB");
+        }
+
+        /// <summary>The grandmaster's voice: Piper + one voice from Tools/piper into the desktop build only.</summary>
+        static void CopyPiper()
+        {
+            const string src = "Tools/piper";
+            string dst = "Build/Linux/JoshsChessTrainer_Data/StreamingAssets/Piper";
+            if (!File.Exists(Path.Combine(src, "piper"))) { Debug.LogWarning("Tools/piper missing (run Tools/setup_piper.sh): no live speech in this build"); return; }
+            Directory.CreateDirectory(dst);
+            foreach (var f in new[] { "piper", "libespeak-ng.so.1", "libpiper_phonemize.so.1", "libonnxruntime.so.1.14.1", "en_GB-alan-medium.onnx", "en_GB-alan-medium.onnx.json" })
+                File.Copy(Path.Combine(src, f), Path.Combine(dst, f), true); // File.Copy follows the .so symlinks
+            CopyDir(Path.Combine(src, "espeak-ng-data"), Path.Combine(dst, "espeak-ng-data"));
+        }
+
+        static void CopyDir(string from, string to)
+        {
+            Directory.CreateDirectory(to);
+            foreach (var f in Directory.GetFiles(from)) File.Copy(f, Path.Combine(to, Path.GetFileName(f)), true);
+            foreach (var d in Directory.GetDirectories(from)) CopyDir(d, Path.Combine(to, Path.GetFileName(d)));
         }
 
         public static void GenerateAndBuild()
         {
             GenerateAll();
             BuildLinux();
+        }
+
+        public const string WebGLPath = "Build/WebGL";
+
+        /// <summary>Browser build (WebGL 2) using the page template in Assets/WebGLTemplates/Chess.</summary>
+        public static void BuildWebGL()
+        {
+            ConfigureProject();
+            PlayerSettings.SetUseDefaultGraphicsAPIs(BuildTarget.WebGL, false);
+            PlayerSettings.SetGraphicsAPIs(BuildTarget.WebGL, new[] { GraphicsDeviceType.OpenGLES3 });
+            // gzip + fallback: static hosts like GitHub Pages don't send Content-Encoding for .gz files
+            PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Gzip;
+            PlayerSettings.WebGL.decompressionFallback = true;
+            PlayerSettings.WebGL.dataCaching = true;
+            PlayerSettings.WebGL.nameFilesAsHashes = false;
+            PlayerSettings.WebGL.exceptionSupport = WebGLExceptionSupport.ExplicitlyThrownExceptionsOnly;
+            PlayerSettings.WebGL.template = "PROJECT:Chess";
+            PlayerSettings.runInBackground = false;
+            if (Directory.Exists(WebGLPath)) Directory.Delete(WebGLPath, true);
+            var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
+            {
+                scenes = new[] { ScenePath },
+                locationPathName = WebGLPath,
+                target = BuildTarget.WebGL,
+                options = BuildOptions.None,
+            });
+            if (report.summary.result != BuildResult.Succeeded) throw new Exception("WebGL build failed: " + report.summary.result);
+            Debug.Log($"KINGSFALL_WEBGL_OK size={report.summary.totalSize / (1024 * 1024)}MB");
+        }
+
+        public static void GenerateAndBuildWebGL()
+        {
+            GenerateAll();
+            BuildWebGL();
         }
 
         // ------------------------------------------------------------ project settings

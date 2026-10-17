@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Downloads the Piper text-to-speech engine and voices (not kept in git, ~380 MB):
-#   Tools/piper/                    engine + all voices, used by Tools/make_voices.py
-#   Assets/StreamingAssets/Piper/   engine + the grandmaster's voice, shipped in the build
+#   Tools/piper/   engine + all voices: used by Tools/make_voices.py, and the engine plus
+#                  the grandmaster's voice are copied into the Linux build (not the web one)
 set -euo pipefail
 cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.."
 P=Tools/piper
@@ -19,9 +19,4 @@ for v in $VOICES; do
         [[ -s $P/$n.$ext ]] || curl -fsSL -o "$P/$n.$ext" "https://huggingface.co/rhasspy/piper-voices/resolve/main/$v.$ext"
     done
 done
-D=Assets/StreamingAssets/Piper
-mkdir -p "$D"
-cp -L $P/piper $P/libespeak-ng.so.1 $P/libpiper_phonemize.so.1 $P/libonnxruntime.so.1.14.1 \
-      $P/en_GB-alan-medium.onnx $P/en_GB-alan-medium.onnx.json "$D"/
-rm -rf "$D/espeak-ng-data" && cp -r $P/espeak-ng-data "$D"/
-echo "Piper ready: $P and $D"
+echo "Piper ready in $P (copied into the Linux build by ./build.sh)"

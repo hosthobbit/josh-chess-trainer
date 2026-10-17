@@ -176,7 +176,7 @@ namespace Kingsfall
             if (!IsHumanTurn || hintTask != null) return;
             var snapshot = Board.Clone();
             HintText = "Thinking…";
-            hintTask = Task.Run(() => new ChessAI().FindBestMove(snapshot, Difficulty.Warlord));
+            hintTask = EngineJob.Start(() => new ChessAI().FindBestMove(snapshot, Difficulty.Warlord));
         }
 
         void PollHint()
@@ -209,6 +209,7 @@ namespace Kingsfall
                     if (go && go.parent == null && go.name == n) Destroy(go.gameObject);
             aiTask = null;
             hintTask = null;
+            EngineJob.Clear();
             HintText = "";
             Busy = false;
             Skipping = false;
@@ -260,6 +261,11 @@ namespace Kingsfall
         void Update()
         {
             if (Reviewing && Grandmaster.I && Grandmaster.I.Present && !reviewCloseUp) ReviewCamera(reviewSide, false);
+            if (!EngineJob.Threaded)
+            {
+                // browsers: one engine job per frame; otherwise chip away at the review analysis while it's quiet
+                if (!EngineJob.Pump() && !Busy && !Reviewing && (Time.frameCount & 1) == 0) analyser.PumpOne();
+            }
             if (autoshot) return;
 
             if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Escape) && Busy) Skip();
@@ -278,7 +284,7 @@ namespace Kingsfall
                     var snapshot = Board.Clone();
                     var diff = Mode == GameMode.Attract ? Difficulty.Squire : Difficulty;
                     aiStarted = Time.unscaledTime;
-                    aiTask = Task.Run(() => new ChessAI().FindBestMove(snapshot, diff));
+                    aiTask = EngineJob.Start(() => new ChessAI().FindBestMove(snapshot, diff));
                 }
                 if (aiTask != null && aiTask.IsCompleted && Time.unscaledTime - aiStarted > (Mode == GameMode.Attract ? 0.9f : 0.5f))
                 {
@@ -504,7 +510,7 @@ namespace Kingsfall
             int side = vsAI ? human : Board.White;
             var build = LastReview != null
                 ? Task.FromResult(LastReview)
-                : Task.Run(() => new GameReviewBuilder(moves, status, vsAI, human, analyser).Build());
+                : EngineJob.Start(() => new GameReviewBuilder(moves, status, vsAI, human, analyser).Build());
             reviewSide = side;
             ReviewCamera(side, false);
             yield return Grandmaster.I.Appear(side);
@@ -530,7 +536,7 @@ namespace Kingsfall
                     requestedBeat = -1;
                     ShowPosition(moves, beat.Ply);
                     Grandmaster.I.ShowArrows(beat.Arrows);
-                    if (autoshot)
+                    if (autoshot && autoshotDir != null)
                     {
                         yield return new WaitForSecondsRealtime(1.4f);
                         Shot($"review_{BeatIndex:00}");
@@ -561,7 +567,7 @@ namespace Kingsfall
                         yield return null;
                     }
                     if (gen != generation) yield break;
-                    if (autoshot) Debug.Log($"KINGSFALL_REVIEW_BEAT {BeatIndex} engine={Speech.I.Engine} audio={Speech.I.LastSayHadAudio} '{beat.Text}'");
+                    Debug.Log($"KINGSFALL_REVIEW_BEAT {BeatIndex} engine={Speech.I.Engine} audio={Speech.I.LastSayHadAudio} '{beat.Text}'");
                     Speech.I.Stop();
                     BeatIndex = requestedBeat >= 0 ? Mathf.Min(requestedBeat, beats.Count) : BeatIndex + 1;
                 }
@@ -655,6 +661,15 @@ namespace Kingsfall
             ScreenCapture.CaptureScreenshot(Path.Combine(autoshotDir, name + ".png"));
         }
 
+        /// <summary>Browser QA hook: unityInstance.SendMessage("Kingsfall", "WebTest", "review").</summary>
+        public void WebTest(string what)
+        {
+            Debug.Log("KINGSFALL_WEBTEST " + what);
+            if (what == "mute") SoundBank.I.MasterVolume = 0f;
+            if (what == "review") { ResetWorld(); StartCoroutine(ReviewShots()); }
+            if (what == "next") ReviewNext();
+        }
+
         // Scholar's mate with the human as black, then the grandmaster's review of it.
         IEnumerator ReviewShots()
         {
@@ -676,10 +691,10 @@ namespace Kingsfall
             GameOverDetail = "White conquers the realm";
             CameraRig.I.SetSide(Board.Black, true);
             yield return new WaitForSecondsRealtime(1.0f);
-            Shot("review_gameover");
+            if (autoshotDir != null) Shot("review_gameover");
             yield return Review();
             yield return new WaitForSecondsRealtime(0.5f);
-            Shot("review_after");
+            if (autoshotDir != null) Shot("review_after");
             Debug.Log("KINGSFALL_REVIEW_DONE");
         }
 

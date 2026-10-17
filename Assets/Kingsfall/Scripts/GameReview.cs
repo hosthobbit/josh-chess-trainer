@@ -12,7 +12,8 @@ namespace Kingsfall.Chess
     /// </summary>
     public class ReviewAnalyser
     {
-        public const long MsPerPosition = 450;
+        // browsers analyse on the main thread between frames, so they get a much smaller budget
+        public static readonly long MsPerPosition = EngineJob.Threaded ? 450 : 70;
 
         readonly Dictionary<ulong, (Move best, int score)> cache = new Dictionary<ulong, (Move, int)>();
         readonly Queue<Board> queue = new Queue<Board>();
@@ -26,6 +27,7 @@ namespace Kingsfall.Chess
             {
                 if (cache.ContainsKey(b.Hash)) return;
                 queue.Enqueue(b.Clone());
+                if (!EngineJob.Threaded) return;
                 if (worker == null)
                 {
                     worker = new Thread(Run) { IsBackground = true, Name = "ReviewAnalyser", Priority = ThreadPriority.BelowNormal };
@@ -48,6 +50,21 @@ namespace Kingsfall.Chess
                 }
                 Get(b);
             }
+        }
+
+        /// <summary>Main-thread fallback (no threads in browsers): analyse one queued position.</summary>
+        public void PumpOne()
+        {
+            Board b = null;
+            lock (gate)
+            {
+                while (queue.Count > 0 && b == null)
+                {
+                    var next = queue.Dequeue();
+                    if (!cache.ContainsKey(next.Hash)) b = next;
+                }
+            }
+            if (b != null) Get(b);
         }
 
         /// <summary>Analysis for a position, computing it now (on the calling thread) if needed.</summary>
