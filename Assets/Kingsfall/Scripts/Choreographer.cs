@@ -274,6 +274,7 @@ namespace Kingsfall
         {
             Vector3 a = attacker.transform.position;
             Vector3 v = victim.transform.position;
+            PieceVoices.I?.LastWords(victim);
 
             switch (attacker.Type)
             {
@@ -351,6 +352,7 @@ namespace Kingsfall
                     Snd.Play(Sfx.Shatter, 0.9f);
                     Hit(0.65f, 0.7f, 0.18f, 0.55f);
                     v.Tremble(0);
+                    PieceVoices.I?.Cry(v);
                     FX.Shatter(v, contact, dir * 3.2f, 2.2f, 1.8f);
                     FX.Dust(vpos, 0.45f, 40, 1.8f);
                     FX.Embers(vpos + Vector3.up * 0.4f, 30, ImpactColour(p));
@@ -409,6 +411,7 @@ namespace Kingsfall
             Hit(0.85f, 0.9f, 0.15f, 0.7f);
             Post.ExposureKick(0.25f);
             v.Squash = new Vector3(1.35f, 0.3f, 1.35f);
+            PieceVoices.I?.Cry(v);
             FX.Shatter(v, vpos + Vector3.up * 0.05f, dir * 0.5f, 4.2f, 2.2f, 10f);
             FX.Shockwave(vpos, 4.5f, ImpactColour(n) * 1.3f, 0.7f);
             FX.Dust(vpos, 0.5f, 70, 2.8f);
@@ -456,6 +459,7 @@ namespace Kingsfall
 
             v.Tremble(0.15f);
             v.SetGlowColour(holy);
+            PieceVoices.I?.Cry(v);
             Snd.Play(Sfx.Crumble, 1f);
             var soul = FX.SoulStream(v, holy, 1.5f);
             yield return Tween.Run(1.3f, k => { v.Dissolve = Mathf.Lerp(0.05f, 1f, k); v.Glow = 2f * (1f - k); v.Crack = k; v.Offset = new Vector3(0, k * 0.15f, 0); }, Ease.InOutQuad);
@@ -538,6 +542,7 @@ namespace Kingsfall
             Snd.Play(Sfx.Shatter, 1f, 0.85f);
             Snd.Play(Sfx.Impact, 0.7f, 0.9f);
             Hit(0.5f, 0.6f);
+            PieceVoices.I?.Cry(v);
             FX.Shatter(v, crash - dir * 0.2f - Vector3.up * 0.2f, rb.linearVelocity * 0.35f, 3f, 2f, 10f);
             FX.Dust(new Vector3(crash.x, Mathf.Max(crash.y - 0.3f, -0.85f), crash.z), 0.5f, 40, 2f);
             FX.Embers(crash, 30, ImpactColour(r));
@@ -597,6 +602,7 @@ namespace Kingsfall
             Snd.Play(Sfx.Shatter, 0.8f, 1.1f);
             Hit(1f, 1f, 0.15f, 0.8f);
             Post.ExposureKick(0.8f);
+            PieceVoices.I?.Cry(v);
             FX.Shatter(v, target - dir * 0.15f, dir * 2.5f + Vector3.up * 1f, 5.5f, 3f, 14f);
             FX.FlashLight(target, power * 1.2f, 80f, 9f, 0.6f);
             FX.Shockwave(vpos, 5f, power * 1.5f, 0.8f);
@@ -669,6 +675,7 @@ namespace Kingsfall
             Hit(0.9f, 0.9f, 0.15f, 0.7f);
             Post.ExposureKick(0.4f);
             v.Squash = new Vector3(1.4f, 0.25f, 1.4f);
+            PieceVoices.I?.Cry(v);
             FX.Shatter(v, vpos - dir * 0.2f + Vector3.up * 0.2f, dir * 2f, 3.8f, 2f, 11f);
             FX.Shockwave(vpos, 4f, ImpactColour(k) * 2f, 0.7f);
             FX.Dust(vpos, 0.5f, 60, 2.6f);
@@ -689,6 +696,7 @@ namespace Kingsfall
         public IEnumerator Checkmate(PieceView king, PieceView attacker)
         {
             Vector3 kp = king.transform.position;
+            PieceVoices.I?.LastWords(king);
             Vector3 fromDir = attacker ? Flat(kp - attacker.transform.position).normalized : -king.Forward;
             if (fromDir.sqrMagnitude < 0.01f) fromDir = -king.Forward;
             CloseShot(kp, -fromDir + Vector3.Cross(Vector3.up, fromDir) * 0.8f, 3.6f, 1.5f, 38f);
@@ -711,6 +719,7 @@ namespace Kingsfall
             FX.Dust(kp + fromDir * 0.7f, 0.6f, 60, 2f);
             yield return Tween.Wait(0.6f);
             Snd.Play(Sfx.Shatter, 1f, 0.7f);
+            PieceVoices.I?.Cry(king);
             FX.Shatter(king, kp + Vector3.up * 0.2f, Vector3.up * 0.5f, 2.5f, 3f, 8f, 10f);
             FX.Embers(kp + Vector3.up * 0.3f, 90, Lava, 0.6f, 1.2f);
             FX.Shockwave(kp, 6f, Lava, 1f);

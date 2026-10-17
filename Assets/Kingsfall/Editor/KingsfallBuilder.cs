@@ -324,6 +324,22 @@ namespace Kingsfall.EditorTools
                 m.SetColor("_DissolveEdge", new Color(4f, 3.2f, 1.4f));
                 m.SetFloat("_UseVertexColor", 1f);
             });
+            lib.sageRobe = StoneMat("SageRobe", m =>
+            {
+                // deep royal-blue lapis with gold flecks for the grandmaster's robe and hat
+                m.SetColor("_BaseColor", new Color(0.05f, 0.09f, 0.32f));
+                m.SetColor("_BaseColor2", new Color(0.08f, 0.05f, 0.26f));
+                m.SetColor("_VeinColor", new Color(0.75f, 0.6f, 0.3f));
+                m.SetColor("_VeinEmission", new Color(0.25f, 0.35f, 0.9f));
+                m.SetFloat("_EmissionPulse", 1f);
+                m.SetFloat("_VeinScale", 4.5f); m.SetFloat("_VeinSharpness", 18f); m.SetFloat("_VeinWarp", 1.6f); m.SetFloat("_VeinAmount", 0.6f);
+                m.SetFloat("_Smoothness", 0.7f); m.SetFloat("_VeinSmoothness", 0.8f);
+                m.SetColor("_GoldColor", new Color(1f, 0.76f, 0.36f)); m.SetFloat("_GoldSmoothness", 0.9f);
+                m.SetColor("_InteriorColor", new Color(0.6f, 0.9f, 2.6f));
+                m.SetColor("_FlashColor", new Color(1.6f, 1.8f, 2.4f));
+                m.SetColor("_DissolveEdge", new Color(1.4f, 2.2f, 4f));
+                m.SetFloat("_UseVertexColor", 1f);
+            });
             lib.blackPiece = StoneMat("Obsidian", m =>
             {
                 m.SetColor("_BaseColor", new Color(0.022f, 0.02f, 0.026f));
@@ -443,6 +459,14 @@ namespace Kingsfall.EditorTools
                 lib.shards[ti] = MakeShards(type, s, shardCounts[ti], 1000 + ti * 17);
                 Debug.Log($"Kingsfall: {type} mesh {mesh.vertexCount} verts, {lib.shards[ti].meshes.Length} shards");
             }
+            var (robe, skin) = PieceSculpts.Grandmaster();
+            lib.grandmasterMesh = SurfaceNets.Build(robe.Shape, robe.Bounds, 0.011f, p => new Color(0, robe.Gold(p), 0, 1));
+            lib.grandmasterMesh.name = "GrandmasterRobe";
+            SaveAsset(lib.grandmasterMesh, Gen + "GrandmasterRobe.asset");
+            lib.grandmasterSkinMesh = SurfaceNets.Build(skin.Shape, skin.Bounds, 0.006f, p => new Color(0, 0, 0, 1));
+            lib.grandmasterSkinMesh.name = "GrandmasterSkin";
+            SaveAsset(lib.grandmasterSkinMesh, Gen + "GrandmasterSkin.asset");
+            Debug.Log($"Kingsfall: grandmaster meshes {lib.grandmasterMesh.vertexCount} + {lib.grandmasterSkinMesh.vertexCount} verts");
         }
 
         static ShardSet MakeShards(PieceType type, Sculpt s, int count, int seed)
@@ -977,6 +1001,9 @@ namespace Kingsfall.EditorTools
             game.AddComponent<BoardView>();
             game.AddComponent<Choreographer>();
             game.AddComponent<GameUI>();
+            game.AddComponent<Speech>();
+            game.AddComponent<PieceVoices>();
+            game.AddComponent<Grandmaster>();
             var amb = game.AddComponent<Ambience>();
             amb.Fires = fires.ToArray();
             amb.FireLights = fireLights.ToArray();

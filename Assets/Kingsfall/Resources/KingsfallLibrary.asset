@@ -25,14 +25,14 @@ MonoBehaviour:
     offsets: []
   - meshes:
     - {fileID: 4300000, guid: c9e8649119191b4e585e6701b0312a2c, type: 2}
-    - {fileID: -2122182671833503453, guid: c9e8649119191b4e585e6701b0312a2c, type: 2}
-    - {fileID: 691134286348972174, guid: c9e8649119191b4e585e6701b0312a2c, type: 2}
-    - {fileID: 7947517493274430418, guid: c9e8649119191b4e585e6701b0312a2c, type: 2}
-    - {fileID: 2869276716707700213, guid: c9e8649119191b4e585e6701b0312a2c, type: 2}
-    - {fileID: 9102180412656990267, guid: c9e8649119191b4e585e6701b0312a2c, type: 2}
-    - {fileID: -7050061282394713862, guid: c9e8649119191b4e585e6701b0312a2c, type: 2}
-    - {fileID: 1719086291245855452, guid: c9e8649119191b4e585e6701b0312a2c, type: 2}
-    - {fileID: 4442271812727459306, guid: c9e8649119191b4e585e6701b0312a2c, type: 2}
+    - {fileID: -5363679876776791546, guid: c9e8649119191b4e585e6701b0312a2c, type: 2}
+    - {fileID: 868631330105735367, guid: c9e8649119191b4e585e6701b0312a2c, type: 2}
+    - {fileID: 7883479330499072667, guid: c9e8649119191b4e585e6701b0312a2c, type: 2}
+    - {fileID: -4643486825683286148, guid: c9e8649119191b4e585e6701b0312a2c, type: 2}
+    - {fileID: 2123069017070971339, guid: c9e8649119191b4e585e6701b0312a2c, type: 2}
+    - {fileID: -1643444025415773341, guid: c9e8649119191b4e585e6701b0312a2c, type: 2}
+    - {fileID: 6134769065315114213, guid: c9e8649119191b4e585e6701b0312a2c, type: 2}
+    - {fileID: 4389384994897514560, guid: c9e8649119191b4e585e6701b0312a2c, type: 2}
     offsets:
     - {x: -0.064243026, y: 0.41625962, z: -0.00566359}
     - {x: -0.04847147, y: 0.2956131, z: -0.06963307}
@@ -45,17 +45,17 @@ MonoBehaviour:
     - {x: -0.10849281, y: 0.060420163, z: 0.18967621}
   - meshes:
     - {fileID: 4300000, guid: 8a711c256a4c3d0b0b3af0a7937488e6, type: 2}
-    - {fileID: -3541552118658188229, guid: 8a711c256a4c3d0b0b3af0a7937488e6, type: 2}
-    - {fileID: -7155893928758578854, guid: 8a711c256a4c3d0b0b3af0a7937488e6, type: 2}
-    - {fileID: 8432026158885759348, guid: 8a711c256a4c3d0b0b3af0a7937488e6, type: 2}
-    - {fileID: -8377864871436115442, guid: 8a711c256a4c3d0b0b3af0a7937488e6, type: 2}
-    - {fileID: 546900484034207661, guid: 8a711c256a4c3d0b0b3af0a7937488e6, type: 2}
-    - {fileID: 832311512935797632, guid: 8a711c256a4c3d0b0b3af0a7937488e6, type: 2}
-    - {fileID: 887479897656514797, guid: 8a711c256a4c3d0b0b3af0a7937488e6, type: 2}
-    - {fileID: 6299491108717515038, guid: 8a711c256a4c3d0b0b3af0a7937488e6, type: 2}
-    - {fileID: -8023168516675885970, guid: 8a711c256a4c3d0b0b3af0a7937488e6, type: 2}
-    - {fileID: -3376458886303684950, guid: 8a711c256a4c3d0b0b3af0a7937488e6, type: 2}
-    - {fileID: -7452935858637069460, guid: 8a711c256a4c3d0b0b3af0a7937488e6, type: 2}
+    - {fileID: 6592766380794886746, guid: 8a711c256a4c3d0b0b3af0a7937488e6, type: 2}
+    - {fileID: 6989867999279911683, guid: 8a711c256a4c3d0b0b3af0a7937488e6, type: 2}
+    - {fileID: -4409870559073715787, guid: 8a711c256a4c3d0b0b3af0a7937488e6, type: 2}
+    - {fileID: 7206909203556290944, guid: 8a711c256a4c3d0b0b3af0a7937488e6, type: 2}
+    - {fileID: -8392881144858229073, guid: 8a711c256a4c3d0b0b3af0a7937488e6, type: 2}
+    - {fileID: -6018999613390684561, guid: 8a711c256a4c3d0b0b3af0a7937488e6, type: 2}
+    - {fileID: 4467991737976541701, guid: 8a711c256a4c3d0b0b3af0a7937488e6, type: 2}
+    - {fileID: 2462266003761218695, guid: 8a711c256a4c3d0b0b3af0a7937488e6, type: 2}
+    - {fileID: 4453013778961659976, guid: 8a711c256a4c3d0b0b3af0a7937488e6, type: 2}
+    - {fileID: -2077402653570492109, guid: 8a711c256a4c3d0b0b3af0a7937488e6, type: 2}
+    - {fileID: -6797984509348694743, guid: 8a711c256a4c3d0b0b3af0a7937488e6, type: 2}
     offsets:
     - {x: 0.008594472, y: 0.068870656, z: 0.23532243}
     - {x: -0.008313201, y: 0.078224346, z: -0.1607691}
@@ -71,17 +71,17 @@ MonoBehaviour:
     - {x: -0.029231347, y: 0.34071213, z: -0.11595804}
   - meshes:
     - {fileID: 4300000, guid: 27646fdc327bbb254bc90f5816eef1bd, type: 2}
-    - {fileID: -4074191338969299852, guid: 27646fdc327bbb254bc90f5816eef1bd, type: 2}
-    - {fileID: -6474154359514758074, guid: 27646fdc327bbb254bc90f5816eef1bd, type: 2}
-    - {fileID: 1017120957124055408, guid: 27646fdc327bbb254bc90f5816eef1bd, type: 2}
-    - {fileID: -8256536661132786084, guid: 27646fdc327bbb254bc90f5816eef1bd, type: 2}
-    - {fileID: -6715539115809361584, guid: 27646fdc327bbb254bc90f5816eef1bd, type: 2}
-    - {fileID: -2249428461954507127, guid: 27646fdc327bbb254bc90f5816eef1bd, type: 2}
-    - {fileID: -6960724765937705501, guid: 27646fdc327bbb254bc90f5816eef1bd, type: 2}
-    - {fileID: 5436072714673697513, guid: 27646fdc327bbb254bc90f5816eef1bd, type: 2}
-    - {fileID: -3573064779434761766, guid: 27646fdc327bbb254bc90f5816eef1bd, type: 2}
-    - {fileID: 4308513116670630773, guid: 27646fdc327bbb254bc90f5816eef1bd, type: 2}
-    - {fileID: -8789668450802983385, guid: 27646fdc327bbb254bc90f5816eef1bd, type: 2}
+    - {fileID: 258620108353168618, guid: 27646fdc327bbb254bc90f5816eef1bd, type: 2}
+    - {fileID: -4316270139398400369, guid: 27646fdc327bbb254bc90f5816eef1bd, type: 2}
+    - {fileID: 3597054956000505584, guid: 27646fdc327bbb254bc90f5816eef1bd, type: 2}
+    - {fileID: -4693199963966830344, guid: 27646fdc327bbb254bc90f5816eef1bd, type: 2}
+    - {fileID: -9068032390444637895, guid: 27646fdc327bbb254bc90f5816eef1bd, type: 2}
+    - {fileID: -9068218952856385983, guid: 27646fdc327bbb254bc90f5816eef1bd, type: 2}
+    - {fileID: -9219164576595650111, guid: 27646fdc327bbb254bc90f5816eef1bd, type: 2}
+    - {fileID: 6219250500795326522, guid: 27646fdc327bbb254bc90f5816eef1bd, type: 2}
+    - {fileID: 6772575118793344070, guid: 27646fdc327bbb254bc90f5816eef1bd, type: 2}
+    - {fileID: -8864874200912338841, guid: 27646fdc327bbb254bc90f5816eef1bd, type: 2}
+    - {fileID: -4241460101601154696, guid: 27646fdc327bbb254bc90f5816eef1bd, type: 2}
     offsets:
     - {x: 0.05869862, y: 0.1309102, z: 0.017557455}
     - {x: -0.0013892668, y: 0.06268263, z: 0.21046726}
@@ -97,17 +97,17 @@ MonoBehaviour:
     - {x: 0.2497029, y: 0.041892216, z: 0.05382606}
   - meshes:
     - {fileID: 4300000, guid: 40be215aa51d52367814a6f1bcf9a395, type: 2}
-    - {fileID: -1244312080929045112, guid: 40be215aa51d52367814a6f1bcf9a395, type: 2}
-    - {fileID: 6773806438468892633, guid: 40be215aa51d52367814a6f1bcf9a395, type: 2}
-    - {fileID: -8792605302686032727, guid: 40be215aa51d52367814a6f1bcf9a395, type: 2}
-    - {fileID: -6897014533668228099, guid: 40be215aa51d52367814a6f1bcf9a395, type: 2}
-    - {fileID: 5988194835354606315, guid: 40be215aa51d52367814a6f1bcf9a395, type: 2}
-    - {fileID: 553248570438765074, guid: 40be215aa51d52367814a6f1bcf9a395, type: 2}
-    - {fileID: 3787503804280500425, guid: 40be215aa51d52367814a6f1bcf9a395, type: 2}
-    - {fileID: -6244769767825813130, guid: 40be215aa51d52367814a6f1bcf9a395, type: 2}
-    - {fileID: 8936179547984736273, guid: 40be215aa51d52367814a6f1bcf9a395, type: 2}
-    - {fileID: 6173737352536874686, guid: 40be215aa51d52367814a6f1bcf9a395, type: 2}
-    - {fileID: -7988480387718788192, guid: 40be215aa51d52367814a6f1bcf9a395, type: 2}
+    - {fileID: -6369500381702127649, guid: 40be215aa51d52367814a6f1bcf9a395, type: 2}
+    - {fileID: 9170536322658965584, guid: 40be215aa51d52367814a6f1bcf9a395, type: 2}
+    - {fileID: -3819521239648933265, guid: 40be215aa51d52367814a6f1bcf9a395, type: 2}
+    - {fileID: -5739406264338898341, guid: 40be215aa51d52367814a6f1bcf9a395, type: 2}
+    - {fileID: 2594676805644208797, guid: 40be215aa51d52367814a6f1bcf9a395, type: 2}
+    - {fileID: -5265013276440701736, guid: 40be215aa51d52367814a6f1bcf9a395, type: 2}
+    - {fileID: 6521958463750987377, guid: 40be215aa51d52367814a6f1bcf9a395, type: 2}
+    - {fileID: -3249629255750274647, guid: 40be215aa51d52367814a6f1bcf9a395, type: 2}
+    - {fileID: 4015900840269656889, guid: 40be215aa51d52367814a6f1bcf9a395, type: 2}
+    - {fileID: 4453444014918139153, guid: 40be215aa51d52367814a6f1bcf9a395, type: 2}
+    - {fileID: -3820077094649310409, guid: 40be215aa51d52367814a6f1bcf9a395, type: 2}
     offsets:
     - {x: 0.13529347, y: 0.14441766, z: -0.15488753}
     - {x: 0.08598717, y: 0.8041377, z: 0.20256902}
@@ -123,19 +123,19 @@ MonoBehaviour:
     - {x: -0.12223721, y: 0.060207125, z: -0.2102175}
   - meshes:
     - {fileID: 4300000, guid: c3edb5fda8d93febca86950c5917d374, type: 2}
-    - {fileID: -2338896538515087902, guid: c3edb5fda8d93febca86950c5917d374, type: 2}
-    - {fileID: 3357657529187292573, guid: c3edb5fda8d93febca86950c5917d374, type: 2}
-    - {fileID: -382586987510867354, guid: c3edb5fda8d93febca86950c5917d374, type: 2}
-    - {fileID: 652109391014657776, guid: c3edb5fda8d93febca86950c5917d374, type: 2}
-    - {fileID: 4031580786050537953, guid: c3edb5fda8d93febca86950c5917d374, type: 2}
-    - {fileID: -8272344354415351796, guid: c3edb5fda8d93febca86950c5917d374, type: 2}
-    - {fileID: 8379413123014177444, guid: c3edb5fda8d93febca86950c5917d374, type: 2}
-    - {fileID: -6530860917986821282, guid: c3edb5fda8d93febca86950c5917d374, type: 2}
-    - {fileID: 3235553835289403269, guid: c3edb5fda8d93febca86950c5917d374, type: 2}
-    - {fileID: 3331812425456310185, guid: c3edb5fda8d93febca86950c5917d374, type: 2}
-    - {fileID: 107713100935374880, guid: c3edb5fda8d93febca86950c5917d374, type: 2}
-    - {fileID: 8733567610801823171, guid: c3edb5fda8d93febca86950c5917d374, type: 2}
-    - {fileID: -7456474156236280473, guid: c3edb5fda8d93febca86950c5917d374, type: 2}
+    - {fileID: 8692426251668302288, guid: c3edb5fda8d93febca86950c5917d374, type: 2}
+    - {fileID: -5393542499755560388, guid: c3edb5fda8d93febca86950c5917d374, type: 2}
+    - {fileID: 6454662861901915403, guid: c3edb5fda8d93febca86950c5917d374, type: 2}
+    - {fileID: 4429816685657125438, guid: c3edb5fda8d93febca86950c5917d374, type: 2}
+    - {fileID: -3874745221994252776, guid: c3edb5fda8d93febca86950c5917d374, type: 2}
+    - {fileID: 3694388729177937790, guid: c3edb5fda8d93febca86950c5917d374, type: 2}
+    - {fileID: 8993385168125260560, guid: c3edb5fda8d93febca86950c5917d374, type: 2}
+    - {fileID: 5136284759995411679, guid: c3edb5fda8d93febca86950c5917d374, type: 2}
+    - {fileID: 1669197767844255796, guid: c3edb5fda8d93febca86950c5917d374, type: 2}
+    - {fileID: -3399974299772254260, guid: c3edb5fda8d93febca86950c5917d374, type: 2}
+    - {fileID: 7640657456160922100, guid: c3edb5fda8d93febca86950c5917d374, type: 2}
+    - {fileID: -7398445407752768646, guid: c3edb5fda8d93febca86950c5917d374, type: 2}
+    - {fileID: 6928724734865441151, guid: c3edb5fda8d93febca86950c5917d374, type: 2}
     offsets:
     - {x: -0.08611064, y: 0.88749856, z: 0.066734575}
     - {x: -0.14025164, y: 0.043105166, z: -0.27459684}
@@ -153,20 +153,20 @@ MonoBehaviour:
     - {x: 0.15411527, y: 0.056940757, z: 0.13433565}
   - meshes:
     - {fileID: 4300000, guid: 34af568b13184d5c2af039d6bf40e40f, type: 2}
-    - {fileID: -8204491881739253006, guid: 34af568b13184d5c2af039d6bf40e40f, type: 2}
-    - {fileID: -6441786196844787221, guid: 34af568b13184d5c2af039d6bf40e40f, type: 2}
-    - {fileID: -5384953864515217447, guid: 34af568b13184d5c2af039d6bf40e40f, type: 2}
-    - {fileID: 8845605755600755693, guid: 34af568b13184d5c2af039d6bf40e40f, type: 2}
-    - {fileID: -2661373761790956130, guid: 34af568b13184d5c2af039d6bf40e40f, type: 2}
-    - {fileID: 6331775436363250990, guid: 34af568b13184d5c2af039d6bf40e40f, type: 2}
-    - {fileID: -3208839674080545632, guid: 34af568b13184d5c2af039d6bf40e40f, type: 2}
-    - {fileID: 9058481443970095101, guid: 34af568b13184d5c2af039d6bf40e40f, type: 2}
-    - {fileID: 4252776988345132107, guid: 34af568b13184d5c2af039d6bf40e40f, type: 2}
-    - {fileID: 7230004446390848893, guid: 34af568b13184d5c2af039d6bf40e40f, type: 2}
-    - {fileID: -4359604147541375442, guid: 34af568b13184d5c2af039d6bf40e40f, type: 2}
-    - {fileID: -8650914262449748223, guid: 34af568b13184d5c2af039d6bf40e40f, type: 2}
-    - {fileID: -7235064578654933902, guid: 34af568b13184d5c2af039d6bf40e40f, type: 2}
-    - {fileID: -83725952430478571, guid: 34af568b13184d5c2af039d6bf40e40f, type: 2}
+    - {fileID: -8753735575142338441, guid: 34af568b13184d5c2af039d6bf40e40f, type: 2}
+    - {fileID: 1677994484758284942, guid: 34af568b13184d5c2af039d6bf40e40f, type: 2}
+    - {fileID: -751052426678875256, guid: 34af568b13184d5c2af039d6bf40e40f, type: 2}
+    - {fileID: -5430219749221250499, guid: 34af568b13184d5c2af039d6bf40e40f, type: 2}
+    - {fileID: 3481934980270683209, guid: 34af568b13184d5c2af039d6bf40e40f, type: 2}
+    - {fileID: 6618621710581369410, guid: 34af568b13184d5c2af039d6bf40e40f, type: 2}
+    - {fileID: -3403547180000073285, guid: 34af568b13184d5c2af039d6bf40e40f, type: 2}
+    - {fileID: -3603741452962068500, guid: 34af568b13184d5c2af039d6bf40e40f, type: 2}
+    - {fileID: -4202749733909404158, guid: 34af568b13184d5c2af039d6bf40e40f, type: 2}
+    - {fileID: 5175608127567524966, guid: 34af568b13184d5c2af039d6bf40e40f, type: 2}
+    - {fileID: 2674213400708592870, guid: 34af568b13184d5c2af039d6bf40e40f, type: 2}
+    - {fileID: -834430727684349888, guid: 34af568b13184d5c2af039d6bf40e40f, type: 2}
+    - {fileID: -1866388677047541179, guid: 34af568b13184d5c2af039d6bf40e40f, type: 2}
+    - {fileID: 5423711624050224720, guid: 34af568b13184d5c2af039d6bf40e40f, type: 2}
     offsets:
     - {x: -0.06545292, y: 0.06995136, z: -0.15940994}
     - {x: 0.058685586, y: 0.672411, z: 0.052606553}
@@ -185,6 +185,7 @@ MonoBehaviour:
     - {x: 0.10258648, y: 0.85218835, z: 0.02670201}
   whitePiece: {fileID: 2100000, guid: 425e290b2a90708d994db169d05e2601, type: 2}
   blackPiece: {fileID: 2100000, guid: ef7de6d14c343b3afb140c582a5a55ba, type: 2}
+  sageRobe: {fileID: 2100000, guid: 2ec3c5593ff9898209d55d273c6f7577, type: 2}
   marker: {fileID: 2100000, guid: 8bd67062f44333444b12f458f8c73991, type: 2}
   captureMarker: {fileID: 2100000, guid: 518af3d958e0a4097a1c0f96a272ffeb, type: 2}
   selectMarker: {fileID: 2100000, guid: 460c260d40b7d82a9a134459f1863431, type: 2}
@@ -201,6 +202,8 @@ MonoBehaviour:
   markerDisc: {fileID: 4300000, guid: 049ff4a777971ae859fcdb8972d71418, type: 2}
   ringMesh: {fileID: 4300000, guid: 37c40725ab7d1becd8a14502c4f77b92, type: 2}
   sphere: {fileID: 4300000, guid: 0be42761a7558c776a8650264c708378, type: 2}
+  grandmasterMesh: {fileID: 4300000, guid: 0d52ec2f56847a964b3fdfa5a4a86617, type: 2}
+  grandmasterSkinMesh: {fileID: 4300000, guid: 210938a0ee23ff22288b8077fad29420, type: 2}
   titleFont: {fileID: 12800000, guid: f4f66eb38564b6593885caab9f40c307, type: 3}
   headFont: {fileID: 12800000, guid: cf5a1f666b60c6768850d3b79b453a30, type: 3}
   bodyFont: {fileID: 12800000, guid: 5eb0f18e7ab01c9019ac912dee8c1a67, type: 3}

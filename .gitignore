@@ -19,3 +19,8 @@ obj/
 *.VC.db
 sysinfo.txt
 mono_crash.*
+
+# Piper TTS engine + voice models (fetched by Tools/setup_piper.sh)
+Tools/piper/
+Assets/StreamingAssets/Piper/
+Assets/StreamingAssets/Piper.meta

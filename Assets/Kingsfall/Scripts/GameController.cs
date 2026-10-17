@@ -33,6 +33,19 @@ namespace Kingsfall
         public bool Skipping { get; private set; }
         public string ShowcaseCaption { get; private set; } = "";
 
+        // ---- grandmaster review
+        public bool ReviewEnabled = true;
+        public bool Reviewing { get; private set; }
+        public string ReviewStatus { get; private set; } = "";
+        public ReviewBeat CurrentBeat { get; private set; }
+        public int BeatIndex { get; private set; }
+        public GameReviewResult LastReview { get; private set; }
+        public bool CanReview => GameOver && !Busy && !Reviewing && (Mode == GameMode.VsAI || Mode == GameMode.TwoPlayer) && Played.Count > 0;
+        readonly ReviewAnalyser analyser = new ReviewAnalyser();
+        int requestedBeat = -1;
+        bool endReview;
+        float musicBeforeReview = -1f;
+
         BoardView view;
         Choreographer choreo;
         Task<Move> aiTask;
@@ -45,7 +58,7 @@ namespace Kingsfall
 
         // automation
         string autoshotDir;
-        bool autoshot;
+        bool autoshot, reviewOnly;
 
         void Awake()
         {
@@ -62,6 +75,7 @@ namespace Kingsfall
             for (int i = 0; i < args.Length; i++)
             {
                 if (args[i] == "--autoshot" && i + 1 < args.Length) { autoshot = true; autoshotDir = args[i + 1]; }
+                if (args[i] == "--review-only") reviewOnly = true;
             }
             if (autoshot) { StartCoroutine(AutoShot()); return; }
             StartAttract();
@@ -128,6 +142,7 @@ namespace Kingsfall
             ResetWorld();
             NewBoard();
             foreach (var m in keep) ApplyInstant(m);
+            analyser.Enqueue(Board);
             view.Spawn(Board);
             if (keep.Count > 0) view.SetLastMove(keep[keep.Count - 1].From, keep[keep.Count - 1].To);
             if (Board.InCheck()) view.SetCheck(Board.KingSq[Board.Side]);
@@ -206,6 +221,14 @@ namespace Kingsfall
             Time.timeScale = 1f;
             CameraRig.I.EndCinematic();
             PostFx.I.CinematicFocus(false);
+            RestoreMusic();
+            Reviewing = false;
+            CurrentBeat = null;
+            ReviewStatus = "";
+            endReview = false;
+            Grandmaster.I?.Hide();
+            Speech.I?.Stop();
+            PieceVoices.I?.Silence();
         }
 
         void NewBoard()
@@ -217,6 +240,8 @@ namespace Kingsfall
             Status = GameStatus.Ongoing;
             GameOver = false;
             view.Spawn(Board);
+            LastReview = null;
+            if (Mode == GameMode.VsAI || Mode == GameMode.TwoPlayer) analyser.Enqueue(Board);
         }
 
         void ApplyInstant(Move m)
@@ -234,9 +259,15 @@ namespace Kingsfall
 
         void Update()
         {
+            if (Reviewing && Grandmaster.I && Grandmaster.I.Present && !reviewCloseUp) ReviewCamera(reviewSide, false);
             if (autoshot) return;
 
             if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Escape) && Busy) Skip();
+            if (Reviewing && GameUI.I && !GameUI.I.ShowMenu)
+            {
+                if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.RightArrow)) ReviewNext();
+                if (Input.GetKeyDown(KeyCode.LeftArrow)) ReviewBack();
+            }
             if (Skipping) PostFx.I.BaseTimeScale = 3.5f;
 
             if (Mode == GameMode.Attract || Mode == GameMode.VsAI)
@@ -366,6 +397,7 @@ namespace Kingsfall
             Board.MakeMove(m);
             Played.Add(m);
             Sans.Add(san);
+            if (Mode == GameMode.VsAI || Mode == GameMode.TwoPlayer) analyser.Enqueue(Board);
 
             if (m.IsPromotion && mover)
                 yield return choreo.Promote(mover, m.Promo, np => view.Pieces[m.To] = np);
@@ -407,6 +439,156 @@ namespace Kingsfall
             Skipping = false;
             Busy = false;
             if (Mode == GameMode.TwoPlayer && AutoFlipTwoPlayer && !GameOver) CameraRig.I.SetSide(Board.Side);
+            if (GameOver && ReviewEnabled && CanReview) StartCoroutine(ReviewAfterDelay(gen));
+        }
+
+        // ------------------------------------------------------------ grandmaster review
+
+        IEnumerator ReviewAfterDelay(int gen)
+        {
+            yield return new WaitForSecondsRealtime(2.8f);
+            if (gen == generation && CanReview) StartReview();
+        }
+
+        public void StartReview()
+        {
+            if (!CanReview) return;
+            flow = StartCoroutine(Review());
+        }
+
+        public void ReviewNext() { if (CurrentBeat != null) requestedBeat = BeatIndex + 1; }
+        public void ReviewBack() { if (CurrentBeat != null) requestedBeat = Mathf.Max(0, BeatIndex - 1); }
+        public void ReviewReplay() { if (CurrentBeat != null) requestedBeat = BeatIndex; }
+        public void EndReview() { if (Reviewing) endReview = true; }
+
+        void ShowPosition(List<Move> moves, int ply)
+        {
+            var b = Board.StartPosition();
+            for (int i = 0; i < ply && i < moves.Count; i++) b.MakeMove(moves[i]);
+            view.Spawn(b);
+            if (ply > 0) view.SetLastMove(moves[ply - 1].From, moves[ply - 1].To);
+            else view.SetLastMove(-1, -1);
+            view.SetCheck(b.InCheck() ? b.KingSq[b.Side] : -1);
+        }
+
+        int reviewSide;
+        bool reviewCloseUp;
+
+        /// <summary>Frames the board with the grandmaster on the right, keeping the same horizontal view for any window shape.</summary>
+        static void ReviewCamera(int side, bool snap)
+        {
+            Vector3 pos = new Vector3(-1.2f, 11.2f, -10.6f), look = new Vector3(1.5f, 0.2f, 0.5f);
+            if (side == Board.Black) { pos = new Vector3(-pos.x, pos.y, -pos.z); look = new Vector3(-look.x, look.y, -look.z); }
+            float aspect = Mathf.Max(0.5f, Screen.width / (float)Mathf.Max(1, Screen.height));
+            float vfov = 2f * Mathf.Atan(Mathf.Tan(36f * Mathf.Deg2Rad) / aspect) * Mathf.Rad2Deg;
+            CameraRig.I.Cinematic(pos, look, Mathf.Clamp(vfov, 40f, 80f), 2.2f, snap);
+        }
+
+        IEnumerator Review()
+        {
+            int gen = generation;
+            Reviewing = true;
+            endReview = false;
+            requestedBeat = -1;
+            CurrentBeat = null;
+            BeatIndex = 0;
+            ReviewStatus = GameReviewBuilder.MasterName + " is studying your game…";
+            PieceVoices.I?.Silence();
+            if (musicBeforeReview < 0f) musicBeforeReview = SoundBank.I.MusicVolume;
+            SoundBank.I.MusicVolume = musicBeforeReview * 0.4f;
+
+            var moves = new List<Move>(Played);
+            var status = Status;
+            bool vsAI = Mode == GameMode.VsAI;
+            int human = HumanColour;
+            int side = vsAI ? human : Board.White;
+            var build = LastReview != null
+                ? Task.FromResult(LastReview)
+                : Task.Run(() => new GameReviewBuilder(moves, status, vsAI, human, analyser).Build());
+            reviewSide = side;
+            ReviewCamera(side, false);
+            yield return Grandmaster.I.Appear(side);
+            while (!build.IsCompleted) yield return null;
+            if (gen != generation) yield break;
+            if (build.IsFaulted)
+            {
+                Debug.LogException(build.Exception);
+                endReview = true;
+            }
+            else
+            {
+                LastReview = build.Result;
+                var beats = LastReview.Beats;
+                var lines = new List<string>();
+                foreach (var b in beats) lines.Add(b.Speech);
+                Speech.I.Prepare(lines);
+                ReviewStatus = "";
+                while (BeatIndex < beats.Count && !endReview)
+                {
+                    var beat = beats[BeatIndex];
+                    CurrentBeat = beat;
+                    requestedBeat = -1;
+                    ShowPosition(moves, beat.Ply);
+                    Grandmaster.I.ShowArrows(beat.Arrows);
+                    if (autoshot)
+                    {
+                        yield return new WaitForSecondsRealtime(1.4f);
+                        Shot($"review_{BeatIndex:00}");
+                        if (BeatIndex == 0)
+                        {
+                            // QA close-up of the grandmaster himself
+                            reviewCloseUp = true;
+                            var head = Grandmaster.HeadPosition(side);
+                            var front = Grandmaster.I.transform.forward;
+                            CameraRig.I.Cinematic(head + new Vector3(side == Board.White ? -3.2f : 3.2f, -0.6f, side == Board.White ? -2.6f : 2.6f), head - Vector3.up * 1.2f, 40f, 50f, true);
+                            yield return new WaitForSecondsRealtime(1.0f);
+                            Shot("review_grandmaster");
+                            reviewCloseUp = false;
+                        }
+                    }
+
+                    bool spoken = false;
+                    float started = Time.unscaledTime, spokenAt = 0f;
+                    StartCoroutine(SayThen(beat.Speech, () => { spoken = true; spokenAt = Time.unscaledTime; }));
+                    while (requestedBeat < 0 && !endReview)
+                    {
+                        if (spoken)
+                        {
+                            // no voice available: give time to read the subtitle instead
+                            float linger = Speech.I.LastSayHadAudio ? 1.0f : Mathf.Max(0f, 2f + beat.Text.Length * 0.055f - (spokenAt - started));
+                            if (Time.unscaledTime - spokenAt > linger) break;
+                        }
+                        yield return null;
+                    }
+                    if (gen != generation) yield break;
+                    if (autoshot) Debug.Log($"KINGSFALL_REVIEW_BEAT {BeatIndex} engine={Speech.I.Engine} audio={Speech.I.LastSayHadAudio} '{beat.Text}'");
+                    Speech.I.Stop();
+                    BeatIndex = requestedBeat >= 0 ? Mathf.Min(requestedBeat, beats.Count) : BeatIndex + 1;
+                }
+            }
+
+            Speech.I.Stop();
+            CurrentBeat = null;
+            ReviewStatus = "";
+            ShowPosition(moves, moves.Count);
+            yield return Grandmaster.I.Vanish();
+            if (gen != generation) yield break;
+            CameraRig.I.EndCinematic();
+            RestoreMusic();
+            Reviewing = false;
+            endReview = false;
+        }
+
+        void RestoreMusic()
+        {
+            if (musicBeforeReview >= 0f) SoundBank.I.MusicVolume = musicBeforeReview;
+            musicBeforeReview = -1f;
+        }
+
+        IEnumerator SayThen(string text, System.Action done)
+        {
+            yield return Speech.I.Say(text);
+            done();
         }
 
         // ------------------------------------------------------------ showcase / autoshot
@@ -473,9 +655,39 @@ namespace Kingsfall
             ScreenCapture.CaptureScreenshot(Path.Combine(autoshotDir, name + ".png"));
         }
 
+        // Scholar's mate with the human as black, then the grandmaster's review of it.
+        IEnumerator ReviewShots()
+        {
+            ShowcaseCaption = "";
+            GameUI.I.ShowMenu = false;
+            Mode = GameMode.VsAI;
+            HumanColour = Board.Black;
+            NewBoard();
+            foreach (var u in new[] { "e2e4", "e7e5", "f1c4", "b8c6", "d1h5", "g8f6", "h5f7" })
+            {
+                var m = Board.LegalMoves().Find(x => x.ToString() == u);
+                ApplyInstant(m);
+            }
+            view.Spawn(Board);
+            var last = Played[Played.Count - 1];
+            view.SetLastMove(last.From, last.To);
+            GameOver = true;
+            GameOverTitle = "CHECKMATE";
+            GameOverDetail = "White conquers the realm";
+            CameraRig.I.SetSide(Board.Black, true);
+            yield return new WaitForSecondsRealtime(1.0f);
+            Shot("review_gameover");
+            yield return Review();
+            yield return new WaitForSecondsRealtime(0.5f);
+            Shot("review_after");
+            Debug.Log("KINGSFALL_REVIEW_DONE");
+        }
+
         IEnumerator AutoShot()
         {
             Debug.Log("KINGSFALL_AUTOSHOT_BEGIN");
+            SoundBank.I.MasterVolume = 0f; // automated runs must stay silent
+            if (reviewOnly) { yield return ReviewShots(); Application.Quit(); yield break; }
             Mode = GameMode.VsAI;
             NewBoard();
             CameraRig.I.UserControl = false;
@@ -496,6 +708,7 @@ namespace Kingsfall
             Shot("low_angle");
             Mode = GameMode.Showcase;
             yield return Showcase(true);
+            yield return ReviewShots();
             Debug.Log("KINGSFALL_AUTOSHOT_DONE");
             yield return new WaitForSecondsRealtime(0.5f);
             Application.Quit();

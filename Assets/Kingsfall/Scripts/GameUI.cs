@@ -122,7 +122,8 @@ namespace Kingsfall
 
         void Update()
         {
-            if (Input.GetKeyDown(KeyCode.Escape) && G && !G.Busy)
+            if (Input.GetKeyDown(KeyCode.Escape) && G && G.Reviewing && !ShowMenu) G.EndReview();
+            else if (Input.GetKeyDown(KeyCode.Escape) && G && !G.Busy)
             {
                 if (G.AwaitingPromotion) G.CancelPromotion();
                 else if (G.Mode != GameMode.Attract) ShowMenu = !ShowMenu;
@@ -190,8 +191,8 @@ namespace Kingsfall
             GUI.DrawTexture(new Rect(W * 0.5f - 260, 318, 520, 2), lineTex);
             GUI.color = new Color(1, 1, 1, menuFade);
 
-            float pw = 520, ph = 660;
-            var pr = Track(new Rect(W * 0.5f - pw * 0.5f, 340, pw, ph));
+            float pw = 520, ph = 692;
+            var pr = Track(new Rect(W * 0.5f - pw * 0.5f, 332, pw, ph));
             GUI.Box(pr, GUIContent.none, panel);
             GUILayout.BeginArea(new Rect(pr.x + 30, pr.y + 26, pw - 60, ph - 40));
             bool inGame = G.Mode == GameMode.VsAI || G.Mode == GameMode.TwoPlayer;
@@ -225,6 +226,12 @@ namespace Kingsfall
             GUILayout.EndHorizontal();
             GUILayout.Space(8);
             GUILayout.BeginHorizontal();
+            var pvoices = PieceVoices.I;
+            if (pvoices) pvoices.Enabled = GUILayout.Toggle(pvoices.Enabled, pvoices.Enabled ? "Piece voices: ON" : "Piece voices: OFF", toggle, GUILayout.Height(44));
+            G.ReviewEnabled = GUILayout.Toggle(G.ReviewEnabled, G.ReviewEnabled ? "Grandmaster: ON" : "Grandmaster: OFF", toggle, GUILayout.Height(44));
+            GUILayout.EndHorizontal();
+            GUILayout.Space(8);
+            GUILayout.BeginHorizontal();
             GUILayout.Label("Music", body, GUILayout.Width(80), GUILayout.Height(30));
             SoundBank.I.MusicVolume = GUILayout.HorizontalSlider(SoundBank.I.MusicVolume, 0f, 1f, GUILayout.Height(30));
             GUILayout.EndHorizontal();
@@ -248,7 +255,8 @@ namespace Kingsfall
             // turn banner
             string side = b.Side == Board.White ? "WHITE" : "BLACK";
             string text;
-            if (G.GameOver) text = G.GameOverTitle;
+            if (G.Reviewing) text = "THE GRANDMASTER'S REVIEW";
+            else if (G.GameOver) text = G.GameOverTitle;
             else if (G.Mode == GameMode.Showcase) text = "BATTLE SHOWCASE";
             else if (G.Thinking) text = $"{side} IS PLOTTING…";
             else if (G.Busy) text = "BATTLE!";
@@ -260,11 +268,13 @@ namespace Kingsfall
             banner.normal.textColor = inCheck ? new Color(1f, 0.35f + 0.2f * Mathf.Sin(Time.unscaledTime * 6f), 0.25f) : Parchment;
             GUI.Label(br, inCheck ? text + "  —  CHECK!" : text, banner);
             // side swatch
-            GUI.color = new Color(b.Side == Board.White ? 0.95f : 0.12f, b.Side == Board.White ? 0.92f : 0.08f, b.Side == Board.White ? 0.86f : 0.07f, a);
+            if (G.Reviewing) GUI.color = new Color(0, 0, 0, 0);
+            else GUI.color = new Color(b.Side == Board.White ? 0.95f : 0.12f, b.Side == Board.White ? 0.92f : 0.08f, b.Side == Board.White ? 0.86f : 0.07f, a);
             GUI.DrawTexture(new Rect(br.x + 22, br.y + 22, 20, 20), lineTex);
             GUI.color = new Color(1, 1, 1, a);
 
-            if (G.Mode != GameMode.Showcase)
+            if (G.Reviewing && G.LastReview != null) DrawReport(G.LastReview);
+            else if (G.Mode != GameMode.Showcase)
             {
                 // captured pieces (left)
                 var cr = Track(new Rect(24, 120, 300, 230));
@@ -290,6 +300,14 @@ namespace Kingsfall
                 GUILayout.EndScrollView();
                 GUILayout.EndArea();
                 if (Event.current.type == EventType.Repaint) moveScroll.y = Mathf.Max(moveScroll.y, (G.Sans.Count + 1) / 2 * 30f);
+            }
+
+            DrawPieceBubble(W, H, a);
+            if (G.Reviewing)
+            {
+                DrawReview(W, H);
+                GUI.color = old;
+                return;
             }
 
             // bottom bar
@@ -377,8 +395,130 @@ namespace Kingsfall
             big.normal.textColor = GoldC;
             GUI.Label(new Rect(r.x, r.y + 20, r.width, 120), G.GameOverTitle, big);
             GUI.Label(new Rect(r.x, r.y + 140, r.width, 40), G.GameOverDetail, subtitle);
-            if (GUI.Button(new Rect(r.x + 120, r.y + 210, 240, 60), "Rematch", buttonBig)) G.Rematch();
-            if (GUI.Button(new Rect(r.x + 400, r.y + 210, 240, 60), "Main Menu", buttonBig)) { ShowMenu = true; G.StartAttract(); }
+            bool review = G.Mode == GameMode.VsAI || G.Mode == GameMode.TwoPlayer;
+            float bx = review ? r.x + 30 : r.x + 120, step = review ? 240 : 280;
+            if (GUI.Button(new Rect(bx, r.y + 210, 220, 60), "Rematch", buttonBig)) G.Rematch();
+            if (review)
+            {
+                GUI.enabled = G.CanReview;
+                if (GUI.Button(new Rect(bx + step, r.y + 210, 220, 60), "Grandmaster", buttonBig)) G.StartReview();
+                GUI.enabled = true;
+            }
+            if (GUI.Button(new Rect(bx + step * (review ? 2 : 1), r.y + 210, 220, 60), "Main Menu", buttonBig)) { ShowMenu = true; G.StartAttract(); }
+        }
+
+        // ------------------------------------------------------------ piece voices and review
+
+        void DrawPieceBubble(float W, float H, float alpha)
+        {
+            var pv = PieceVoices.I;
+            if (!pv || pv.BubbleAlpha < 0.01f || string.IsNullOrEmpty(pv.BubbleText)) return;
+            var cam = CameraRig.I.Cam;
+            Vector3 sp = cam.WorldToScreenPoint(pv.BubblePosition);
+            if (sp.z < 0.1f) return;
+            // screen pixels (y up) -> GUI space (y down, scaled)
+            Vector2 p = new Vector2(sp.x / scale, (Screen.height - sp.y) / scale);
+            var style = new GUIStyle(body) { fontSize = 22, alignment = TextAnchor.MiddleCenter, wordWrap = true };
+            style.normal.textColor = new Color(0.12f, 0.08f, 0.05f);
+            float w = Mathf.Min(380f, style.CalcSize(new GUIContent(pv.BubbleText)).x + 40f);
+            float h = style.CalcHeight(new GUIContent(pv.BubbleText), w - 28f) + 22f;
+            var r = new Rect(Mathf.Clamp(p.x - w * 0.5f, 10f, W - w - 10f), Mathf.Clamp(p.y - h - 26f, 100f, H - h - 10f), w, h);
+            var old = GUI.color;
+            float k = alpha * Mathf.SmoothStep(0f, 1f, pv.BubbleAlpha);
+            GUI.color = new Color(0.97f, 0.93f, 0.84f, 0.95f * k);
+            GUI.DrawTexture(r, lineTex);
+            // little tail pointing at the piece
+            for (int i = 0; i < 12; i++)
+                GUI.DrawTexture(new Rect(Mathf.Clamp(p.x, r.x + 20, r.xMax - 20) - (12 - i), r.yMax + i * 1.5f, (12 - i) * 2, 1.6f), lineTex);
+            GUI.color = new Color(GoldC.r, GoldC.g, GoldC.b, k);
+            GUI.DrawTexture(new Rect(r.x, r.y, r.width, 3), lineTex);
+            GUI.color = new Color(1, 1, 1, k);
+            GUI.Label(new Rect(r.x + 14, r.y + 8, r.width - 28, r.height - 16), pv.BubbleText, style);
+            GUI.color = old;
+        }
+
+        void DrawReport(GameReviewResult rv)
+        {
+            var cr = Track(new Rect(24, 120, 300, 300));
+            GUI.Box(cr, GUIContent.none, panel);
+            GUI.Label(new Rect(cr.x, cr.y + 10, cr.width, 34), "REPORT", heading);
+            var row = new GUIStyle(body) { fontSize = 21 };
+            float y = cr.y + 58;
+            void Row(string label, int n, Color c)
+            {
+                var old = GUI.color;
+                GUI.color = c;
+                GUI.DrawTexture(new Rect(cr.x + 20, y + 9, 14, 14), lineTex);
+                GUI.color = old;
+                GUI.Label(new Rect(cr.x + 46, y, 190, 32), label, row);
+                GUI.Label(new Rect(cr.x + 220, y, 60, 32), n.ToString(), new GUIStyle(row) { alignment = TextAnchor.MiddleRight });
+                y += 38;
+            }
+            Row("Excellent", rv.Excellent, new Color(0.45f, 0.9f, 0.5f));
+            Row("Inaccuracies", rv.Inaccuracies, new Color(0.95f, 0.85f, 0.4f));
+            Row("Mistakes", rv.Mistakes, new Color(1f, 0.6f, 0.25f));
+            Row("Blunders", rv.Blunders, new Color(1f, 0.3f, 0.25f));
+            GUI.Label(new Rect(cr.x + 20, y + 4, cr.width - 40, 60), $"{rv.Moves} moves reviewed", small);
+        }
+
+        void DrawReview(float W, float H)
+        {
+            var beat = G.CurrentBeat;
+            float pw = Mathf.Min(1180f, W - 80f), ph = 250f;
+            var r = Track(new Rect(W * 0.5f - pw * 0.5f, H - ph - 24f, pw, ph));
+            GUI.Box(r, GUIContent.none, panel);
+
+            // speaker name with a pulse while he talks
+            float lvl = Speech.I ? Speech.I.Level : 0f;
+            var name = new GUIStyle(heading) { fontSize = 26, alignment = TextAnchor.MiddleLeft };
+            name.normal.textColor = Color.Lerp(GoldC, Color.white, lvl * 0.6f);
+            GUI.Label(new Rect(r.x + 28, r.y + 12, 400, 34), GameReviewBuilder.MasterName.ToUpperInvariant(), name);
+            if (beat != null)
+            {
+                var t = new GUIStyle(small) { alignment = TextAnchor.MiddleRight, fontSize = 19 };
+                GUI.Label(new Rect(r.xMax - 528, r.y + 12, 500, 34), $"{beat.Title}   ·   {G.BeatIndex + 1} / {G.LastReview.Beats.Count}", t);
+            }
+
+            string text = beat != null ? beat.Text : G.ReviewStatus;
+            var words = new GUIStyle(body) { fontSize = 25, alignment = TextAnchor.UpperLeft, wordWrap = true };
+            GUI.Label(new Rect(r.x + 28, r.y + 56, r.width - 56, 120), text, words);
+
+            // arrow legend for this beat
+            float lx = r.x + 28, ly = r.yMax - 58;
+            if (beat != null)
+            {
+                var seen = new HashSet<ArrowKind>();
+                foreach (var a in beat.Arrows)
+                {
+                    if (!seen.Add(a.Kind)) continue;
+                    string label = a.Kind switch
+                    {
+                        ArrowKind.Played => "Move played",
+                        ArrowKind.Threat => "Their reply",
+                        ArrowKind.Better => "Better move",
+                        _ => "Great move",
+                    };
+                    var c = Grandmaster.ArrowColour(a.Kind);
+                    float m = Mathf.Max(c.r, Mathf.Max(c.g, c.b));
+                    var old = GUI.color;
+                    GUI.color = new Color(c.r / m, c.g / m, c.b / m, 1f);
+                    GUI.DrawTexture(new Rect(lx, ly + 19, 34, 8), lineTex);
+                    GUI.color = old;
+                    GUI.Label(new Rect(lx + 44, ly, 160, 46), label, new GUIStyle(small) { alignment = TextAnchor.MiddleLeft, fontSize = 19 });
+                    lx += 200;
+                }
+            }
+
+            // controls
+            float bw = 150, bh = 46, gap = 10;
+            float bx = r.xMax - 28 - (bw * 4 + gap * 3), by = r.yMax - 60;
+            GUI.enabled = beat != null && G.BeatIndex > 0;
+            if (GUI.Button(Track(new Rect(bx, by, bw, bh)), "◀ Back", button)) G.ReviewBack();
+            GUI.enabled = beat != null;
+            if (GUI.Button(Track(new Rect(bx + (bw + gap), by, bw, bh)), "Repeat", button)) G.ReviewReplay();
+            if (GUI.Button(Track(new Rect(bx + (bw + gap) * 2, by, bw, bh)), "Next ▶", button)) G.ReviewNext();
+            GUI.enabled = true;
+            if (GUI.Button(Track(new Rect(bx + (bw + gap) * 3, by, bw, bh)), "Finish", button)) G.EndReview();
         }
 
         void DrawCaption(float W, float H)

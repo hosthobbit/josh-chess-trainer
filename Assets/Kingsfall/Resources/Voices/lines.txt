@@ -1,0 +1,70 @@
+pawn_line_00|Wait! I was going to be a queen one day!
+pawn_line_01|Tell my mum I was a good pawn!
+pawn_line_02|I'm only little!
+pawn_line_03|Not fair! I can only go forwards!
+pawn_line_04|I knew I should have stayed at home.
+pawn_line_05|Is this what they meant by pawn sacrifice?
+pawn_line_06|Nobody ever remembers the pawns!
+pawn_line_07|I didn't even get my lunch break!
+pawn_line_08|Can I have a do-over?
+pawn_line_09|Mummyyyy!
+knight_line_00|Neigh! I mean, no!
+knight_line_01|Hold your horses!
+knight_line_02|I should have galloped the other way!
+knight_line_03|Not the face, not the face!
+knight_line_04|This is the worst L shaped day ever!
+knight_line_05|My horse is scared and so am I!
+knight_line_06|I only jumped in to help!
+knight_line_07|Whoa there, let's talk about this!
+bishop_line_00|This is most irregular!
+bishop_line_01|I shall be writing a strongly worded letter!
+bishop_line_02|I only ever move diagonally, how did I end up here?
+bishop_line_03|Oh dear, oh dear, oh dear!
+bishop_line_04|Have mercy! I've got a sermon on Sunday!
+bishop_line_05|Well, this is frightfully rude.
+bishop_line_06|I say! Unhand me at once!
+bishop_line_07|Bless me, I am done for!
+rook_line_00|I'm a castle! You can't knock down a castle!
+rook_line_01|I've been standing in that corner all game!
+rook_line_02|Ow! My battlements!
+rook_line_03|Did anybody check the castle insurance?
+rook_line_04|I should have castled when I had the chance.
+rook_line_05|Crumbling! I'm crumbling!
+rook_line_06|Me walls! Me lovely walls!
+rook_line_07|Right, that's it, I'm going back in the box.
+queen_line_00|How dare you! I am the queen!
+queen_line_01|Do you know who I am?
+queen_line_02|Not my crown! It took ages to polish!
+queen_line_03|The king is never going to manage without me.
+queen_line_04|This is absolutely not in my diary.
+queen_line_05|Guards! Guards! Anybody?
+queen_line_06|You will regret this, you peasant!
+queen_line_07|Fine. Somebody else can do all the work now.
+king_line_00|This is not how the story was supposed to end!
+king_line_01|But I'm the king!
+king_line_02|I demand a recount!
+king_line_03|Somebody fetch my queen!
+pawn_cry_00|Eeeeek!
+pawn_cry_01|Waaaah!
+pawn_cry_02|Nooooo!
+pawn_cry_03|Ow ow ow!
+pawn_cry_04|Yikes!
+knight_cry_00|Aaaargh!
+knight_cry_01|Neeeeigh!
+knight_cry_02|Whoa!
+knight_cry_03|Oof!
+bishop_cry_00|Good heavens!
+bishop_cry_01|Oh my!
+bishop_cry_02|Gaaah!
+bishop_cry_03|Heavens above!
+rook_cry_00|Ooooof!
+rook_cry_01|Aaargh!
+rook_cry_02|Timber!
+rook_cry_03|Ugh!
+queen_cry_00|Aaaaah!
+queen_cry_01|How rude!
+queen_cry_02|Nooooo!
+queen_cry_03|Eeeek!
+king_cry_00|Noooooo!
+king_cry_01|My kingdom!
+king_cry_02|Aaaargh!

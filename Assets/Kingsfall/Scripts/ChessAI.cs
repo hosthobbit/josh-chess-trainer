@@ -161,6 +161,51 @@ namespace Kingsfall.Chess
             return best;
         }
 
+        /// <summary>
+        /// Noise-free search for game review. Returns the best move and its score from the side to
+        /// move's point of view (mate scores are ±(Mate - plies)). Score is 0 with a null move when
+        /// the position has no legal moves and isn't mate.
+        /// </summary>
+        public (Move best, int score) Analyse(Board root, long timeMs, int maxDepth = 64)
+        {
+            var board = root.Clone();
+            var legal = board.LegalMoves();
+            if (legal.Count == 0) return (default, board.InCheck() ? -Mate : 0);
+
+            timeLimitMs = timeMs;
+            Array.Clear(killers, 0, killers.Length);
+            clock = Stopwatch.StartNew();
+            aborted = false;
+            nodes = 0;
+            Move best = legal[0];
+            int bestScore = 0;
+            for (int depth = 1; depth <= maxDepth; depth++)
+            {
+                int alpha = -Inf;
+                Move iterBest = best;
+                int iterScore = -Inf;
+                Order(board, legal, best, 0);
+                foreach (var m in legal)
+                {
+                    board.MakeMove(m);
+                    int score = -Search(board, depth - 1, -Inf, -alpha, 1, true);
+                    board.UnmakeMove();
+                    if (aborted) break;
+                    if (score > iterScore) { iterScore = score; iterBest = m; }
+                    if (score > alpha) alpha = score;
+                }
+                if (aborted && depth > 1) break;
+                best = iterBest;
+                bestScore = iterScore;
+                if (Math.Abs(iterScore) > Mate - 100) break;
+                if (clock.ElapsedMilliseconds > timeLimitMs / 2) break;
+            }
+            return (best, bestScore);
+        }
+
+        public static bool IsMateScore(int score) => Math.Abs(score) > Mate - 1000;
+        public static int MateValue => Mate;
+
         int Search(Board b, int depth, int alpha, int beta, int ply, bool allowNull)
         {
             if ((++nodes & 2047) == 0 && clock.ElapsedMilliseconds > timeLimitMs) aborted = true;

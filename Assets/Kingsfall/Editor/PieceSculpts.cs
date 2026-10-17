@@ -259,5 +259,118 @@ namespace Kingsfall.EditorTools
                 Bounds = B(0.40f, 1.50f),
             };
         }
-    }
+            /// <summary>
+        /// The grandmaster who reviews games: a wizard with a wide-brimmed hat, long beard and a
+        /// crowned staff. Two parts so they can take different materials: robe (robe, sleeves,
+        /// hat, belt, staff) and skin (face, hair, beard, hands). Faces +Z, about 2.1 tall.
+        /// </summary>
+        public static (Sculpt robe, Sculpt skin) Grandmaster()
+        {
+            var robeLathe = new Lathe(new[]
+            {
+                V(0.400f, 0.000f), V(0.425f, 0.020f), V(0.418f, 0.060f), V(0.385f, 0.090f), V(0.340f, 0.300f),
+                V(0.290f, 0.600f), V(0.262f, 0.820f), V(0.250f, 1.000f), V(0.235f, 1.120f), V(0.170f, 1.210f),
+                V(0.100f, 1.260f), V(0.060f, 1.280f),
+            });
+            Vector3 staffBase = new Vector3(0.42f, 0.0f, 0.25f), staffTop = new Vector3(0.42f, 1.86f, 0.25f);
+            Vector3 head = new Vector3(0, 1.40f, 0.03f);
+            Vector3 handR = new Vector3(0.42f, 1.06f, 0.25f), handL = new Vector3(-0.10f, 0.82f, 0.27f);
+
+            Func<Vector3, float> hat = p =>
+            {
+                // wide floppy brim, tall cone that bends back at the tip
+                float droop = 0.035f * Mathf.Clamp01((new Vector2(p.x, p.z).magnitude - 0.18f) / 0.17f);
+                float brim = Sdf.Cylinder(p + new Vector3(0, droop, 0), new Vector3(0, 1.545f, 0.0f), 0.35f, 0.012f) - 0.008f;
+                float cone = Sdf.RoundCone(p, new Vector3(0, 1.56f, -0.01f), new Vector3(0, 1.86f, -0.07f), 0.165f, 0.07f);
+                cone = Sdf.SMin(cone, Sdf.RoundCone(p, new Vector3(0, 1.86f, -0.07f), new Vector3(0.02f, 2.04f, -0.24f), 0.07f, 0.014f), 0.05f);
+                return Sdf.SMin(brim, cone, 0.03f);
+            };
+            Func<Vector3, float> sleeves = p =>
+            {
+                float r = Sdf.RoundCone(p, new Vector3(0.22f, 1.12f, 0.0f), new Vector3(0.34f, 0.92f, 0.12f), 0.078f, 0.072f);
+                r = Sdf.SMin(r, Sdf.RoundCone(p, new Vector3(0.34f, 0.92f, 0.12f), new Vector3(0.40f, 1.02f, 0.21f), 0.072f, 0.098f), 0.04f);
+                float l = Sdf.RoundCone(p, new Vector3(-0.22f, 1.12f, 0.0f), new Vector3(-0.31f, 0.86f, 0.08f), 0.078f, 0.072f);
+                l = Sdf.SMin(l, Sdf.RoundCone(p, new Vector3(-0.31f, 0.86f, 0.08f), new Vector3(-0.16f, 0.81f, 0.23f), 0.072f, 0.098f), 0.04f);
+                // hollow the cuffs so the hands sit inside
+                r = Sdf.Sub(r, Sdf.Sphere(p, handR + new Vector3(-0.005f, -0.01f, -0.02f), 0.07f), 0.01f);
+                l = Sdf.Sub(l, Sdf.Sphere(p, handL + new Vector3(-0.02f, 0.0f, -0.02f), 0.07f), 0.01f);
+                return Mathf.Min(r, l);
+            };
+            Func<Vector3, float> staff = p =>
+            {
+                float d = Sdf.Capsule(p, staffBase, staffTop, 0.027f);
+                Vector3 c = staffTop + new Vector3(0, 0.02f, 0);
+                d = Mathf.Min(d, Sdf.Torus(p, c, 0.075f, 0.018f));
+                for (int i = 0; i < 5; i++)
+                {
+                    Vector3 q = Sdf.RotY(p - c, i * 72f);
+                    d = Sdf.SMin(d, Sdf.RoundCone(q, new Vector3(0, 0, 0.075f), new Vector3(0, 0.13f, 0.06f), 0.016f, 0.006f), 0.02f);
+                }
+                return d;
+            };
+            Func<Vector3, float> beard = p =>
+            {
+                float wave = 0.0035f * Mathf.Sin(p.y * 38f + p.x * 30f);
+                float d = Flat(r => Sdf.RoundCone(r, new Vector3(0, 1.31f, 0.11f), new Vector3(0, 0.86f, 0.25f), 0.12f, 0.025f), p, 1.3f);
+                // swept moustache
+                d = Sdf.SMin(d, Sdf.RoundCone(p, new Vector3(0, 1.345f, 0.16f), new Vector3(0.11f, 1.30f, 0.13f), 0.03f, 0.012f), 0.02f);
+                d = Sdf.SMin(d, Sdf.RoundCone(p, new Vector3(0, 1.345f, 0.16f), new Vector3(-0.11f, 1.30f, 0.13f), 0.03f, 0.012f), 0.02f);
+                return d + wave;
+            };
+            Func<Vector3, float> face = p =>
+            {
+                float d = Sdf.Sphere(p, head, 0.135f);
+                d = Sdf.SMin(d, Sdf.Ellipsoid(p, head + new Vector3(0, -0.05f, 0.04f), new Vector3(0.11f, 0.1f, 0.1f)), 0.03f); // cheeks/jaw
+                d = Sdf.SMin(d, Sdf.RoundCone(p, new Vector3(0, 1.43f, 0.145f), new Vector3(0, 1.375f, 0.20f), 0.024f, 0.022f), 0.015f); // nose
+                d = Sdf.SMin(d, Sdf.Ellipsoid(p, new Vector3(-0.055f, 1.468f, 0.138f), new Vector3(0.048f, 0.018f, 0.026f)), 0.012f); // bushy brows
+                d = Sdf.SMin(d, Sdf.Ellipsoid(p, new Vector3(0.055f, 1.468f, 0.138f), new Vector3(0.048f, 0.018f, 0.026f)), 0.012f);
+                d = Sdf.Sub(d, Sdf.Sphere(p, new Vector3(-0.05f, 1.432f, 0.152f), 0.021f), 0.006f); // eye sockets
+                d = Sdf.Sub(d, Sdf.Sphere(p, new Vector3(0.05f, 1.432f, 0.152f), 0.021f), 0.006f);
+                // long hair falling from under the hat at the sides and back
+                d = Sdf.SMin(d, Sdf.RoundCone(p, new Vector3(-0.12f, 1.50f, -0.02f), new Vector3(-0.15f, 1.22f, -0.06f), 0.06f, 0.04f), 0.03f);
+                d = Sdf.SMin(d, Sdf.RoundCone(p, new Vector3(0.12f, 1.50f, -0.02f), new Vector3(0.15f, 1.22f, -0.06f), 0.06f, 0.04f), 0.03f);
+                d = Sdf.SMin(d, Sdf.RoundCone(p, new Vector3(0, 1.50f, -0.10f), new Vector3(0, 1.20f, -0.14f), 0.09f, 0.06f), 0.03f);
+                return d;
+            };
+
+            var robe = new Sculpt
+            {
+                Shape = p =>
+                {
+                    float d = robeLathe.Eval(p);
+                    if (p.y < 1.0f) d += 0.006f * Mathf.Sin(Mathf.Atan2(p.x, p.z) * 9f) * Mathf.Clamp01((1.0f - p.y) * 2f); // folds
+                    d = Sdf.SMin(d, Sdf.Ellipsoid(p, new Vector3(0, 1.13f, -0.01f), new Vector3(0.29f, 0.12f, 0.18f)), 0.06f); // shoulders
+                    d = Sdf.SMin(d, sleeves(p), 0.03f);
+                    d = Mathf.Min(d, Sdf.Torus(p, new Vector3(0, 0.78f, 0.0f), 0.27f, 0.024f)); // belt
+                    d = Mathf.Min(d, hat(p));
+                    d = Mathf.Min(d, staff(p));
+                    return d;
+                },
+                Gold = p =>
+                {
+                    float g = Band(p, 0.018f, 0.075f);                                                       // hem
+                    if (Mathf.Abs(p.y - 0.78f) < 0.03f && new Vector2(p.x, p.z).magnitude > 0.24f) g = 1f;     // belt
+                    if (p.y > 1.565f && p.y < 1.625f && new Vector2(p.x, p.z + 0.01f).magnitude < 0.2f) g = 1f; // hat band
+                    if (staff(p) < 0.004f && p.y > 1.78f) g = 1f;                                            // crown on the staff
+                    if (sleeves(p) < 0.004f && (p - handR).magnitude < 0.13f) g = 1f;                         // cuffs
+                    if (sleeves(p) < 0.004f && (p - handL).magnitude < 0.13f) g = 1f;
+                    return g;
+                },
+                Bounds = new Bounds(new Vector3(0.03f, 1.06f, 0.0f), new Vector3(1.0f, 2.14f, 0.9f)),
+            };
+            var skin = new Sculpt
+            {
+                Shape = p =>
+                {
+                    float d = Sdf.SMin(face(p), beard(p), 0.03f);
+                    d = Mathf.Min(d, Sdf.Ellipsoid(p, handR, new Vector3(0.05f, 0.06f, 0.05f)));
+                    d = Mathf.Min(d, Sdf.Ellipsoid(p, handL, new Vector3(0.055f, 0.045f, 0.05f)));
+                    return d;
+                },
+                Gold = p => 0f,
+                Bounds = new Bounds(new Vector3(0.11f, 1.16f, 0.07f), new Vector3(0.74f, 0.76f, 0.62f)),
+            };
+            return (robe, skin);
+        }
+}
 }

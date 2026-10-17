@@ -20,6 +20,7 @@ namespace Kingsfall
         [Header("Materials")]
         public Material whitePiece;
         public Material blackPiece;
+        public Material sageRobe;
         public Material marker;
         public Material captureMarker;
         public Material selectMarker;
@@ -38,6 +39,8 @@ namespace Kingsfall
         public Mesh markerDisc;
         public Mesh ringMesh;
         public Mesh sphere;
+        public Mesh grandmasterMesh;
+        public Mesh grandmasterSkinMesh;
 
         [Header("Fonts")]
         public Font titleFont;
