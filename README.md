@@ -34,7 +34,7 @@ Checkmate topples and crumbles the losing king. Promotion turns the pawn into a 
 
 ## Playing
 
-**In your browser:** [hosthobbit.github.io/josh-chess-trainer](https://hosthobbit.github.io/josh-chess-trainer/). It's free with nothing to install; use a computer with a mouse. Online, the grandmaster's voice (Piper running inside the page) downloads once in the background, about 63 MB.
+**In your browser:** [hosthobbit.github.io/josh-chess-trainer](https://hosthobbit.github.io/josh-chess-trainer/). It's free with nothing to install, and works on computers, tablets and phones (hold phones sideways). On a phone or tablet: tap a piece then a square, drag with two fingers to turn the board, pinch to zoom, and use Share → Add to Home Screen for an app icon that opens full screen. Online, the grandmaster's voice (Piper running inside the page) downloads once in the background, about 63 MB.
 
 **Linux (prebuilt):** run `./build.sh` once, then `./play.sh`.
 
@@ -50,7 +50,7 @@ Voices use [Piper](https://github.com/rhasspy/piper), an offline neural text-to-
 
 `./build-web.sh` builds the browser version to `Build/WebGL` (the page template is `Assets/WebGLTemplates/Chess`); it's published by pushing that folder plus a `.nojekyll` file to the `gh-pages` branch. Browsers have no threads, so there the engine runs on the main thread with shorter thinking times (`Scripts/EngineJob.cs`).
 
-Testing without a GPU: `./qa.sh <dir>` runs the scripted screenshot test on a virtual screen with software rendering, and `node web-qa.mjs <url> <dir>` drives the browser build in headless Chromium.
+Testing without a GPU: `./qa.sh <dir>` runs the scripted screenshot test on a virtual screen with software rendering, `node web-qa.mjs <url> <dir>` drives the browser build in headless Chromium, and `node mobile-qa.mjs <url> <dir>` does the same as a landscape phone with touch.
 
 Code lives in `Assets/Kingsfall/`:
 - `Scripts/ChessEngine.cs`, `Scripts/ChessAI.cs`: the rules engine and the alpha-beta AI

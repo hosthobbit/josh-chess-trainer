@@ -159,9 +159,12 @@ namespace Kingsfall
         {
             if (!G || G.Board == null) return;
             BuildStyles();
-            scale = Screen.height / 1080f;
+            // phones (short screens) lay the UI out on a 700-high canvas so text stays readable
+            Compact = Screen.height < 700;
+            float H = Compact ? 700f : 1080f;
+            scale = Screen.height / H;
             GUI.matrix = Matrix4x4.Scale(new Vector3(scale, scale, 1));
-            float W = Screen.width / scale, H = 1080f;
+            float W = Screen.width / scale;
             if (Event.current.type == EventType.Layout) uiRects.Clear();
 
             if (Leaderboard.I && Leaderboard.I.Visible)
@@ -184,8 +187,13 @@ namespace Kingsfall
 
         // ------------------------------------------------------------ menu
 
+        /// <summary>Phone-sized screen: compact layouts and touch wording.</summary>
+        public static bool Compact { get; private set; }
+        public static bool Touch => Application.isMobilePlatform;
+
         void DrawMenu(float W, float H)
         {
+            if (Compact) { DrawMenuCompact(W, H); return; }
             var old = GUI.color;
             GUI.color = new Color(1, 1, 1, menuFade);
             GUI.DrawTexture(new Rect(0, 0, W, H), vignetteTex, ScaleMode.StretchToFill);
@@ -204,25 +212,44 @@ namespace Kingsfall
             var pr = Track(new Rect(W * 0.5f - pw * 0.5f, 332, pw, ph));
             GUI.Box(pr, GUIContent.none, panel);
             GUILayout.BeginArea(new Rect(pr.x + 30, pr.y + 26, pw - 60, ph - 40));
+            MenuGameButtons(62f, 10f);
+            GUILayout.Space(18);
+            MenuOptions();
+            GUILayout.FlexibleSpace();
+            if (Application.platform != RuntimePlatform.WebGLPlayer && GUILayout.Button("Quit", button, GUILayout.Height(46))) Application.Quit();
+            GUILayout.EndArea();
+
+            GUI.Label(new Rect(0, H - 46, W, 30), HelpLine, small);
+            GUI.color = old;
+        }
+
+        static string HelpLine => Touch
+            ? "Tap a piece, then tap a square  ·  Two-finger drag to turn the board  ·  Pinch to zoom"
+            : "Left-click to move  ·  Right-drag or A/D to orbit  ·  Scroll to zoom  ·  Space skips a battle  ·  Esc for menu";
+
+        void MenuGameButtons(float h, float gap)
+        {
             bool inGame = G.Mode == GameMode.VsAI || G.Mode == GameMode.TwoPlayer;
             if (inGame && !G.GameOver)
             {
-                if (GUILayout.Button("Resume", buttonBig, GUILayout.Height(62))) ShowMenu = false;
-                GUILayout.Space(10);
+                if (GUILayout.Button("Resume", buttonBig, GUILayout.Height(h))) ShowMenu = false;
+                GUILayout.Space(gap);
             }
-            if (GUILayout.Button("Play as White", buttonBig, GUILayout.Height(62))) { G.StartVsAI(Board.White); ShowMenu = false; }
-            GUILayout.Space(10);
-            if (GUILayout.Button("Play as Black", buttonBig, GUILayout.Height(62))) { G.StartVsAI(Board.Black); ShowMenu = false; }
-            GUILayout.Space(10);
-            if (GUILayout.Button("Two Players", buttonBig, GUILayout.Height(62))) { G.StartTwoPlayer(); ShowMenu = false; }
-            GUILayout.Space(10);
+            if (GUILayout.Button("Play as White", buttonBig, GUILayout.Height(h))) { G.StartVsAI(Board.White); ShowMenu = false; }
+            GUILayout.Space(gap);
+            if (GUILayout.Button("Play as Black", buttonBig, GUILayout.Height(h))) { G.StartVsAI(Board.Black); ShowMenu = false; }
+            GUILayout.Space(gap);
+            if (GUILayout.Button("Two Players", buttonBig, GUILayout.Height(h))) { G.StartTwoPlayer(); ShowMenu = false; }
+            GUILayout.Space(gap);
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Showcase", buttonBig, GUILayout.Height(62))) { G.StartShowcase(); ShowMenu = false; }
-            GUILayout.Space(10);
-            if (GUILayout.Button("Leaderboard", buttonBig, GUILayout.Height(62))) Leaderboard.I.Show();
+            if (GUILayout.Button("Showcase", buttonBig, GUILayout.Height(h))) { G.StartShowcase(); ShowMenu = false; }
+            GUILayout.Space(gap);
+            if (GUILayout.Button("Leaderboard", buttonBig, GUILayout.Height(h))) Leaderboard.I.Show();
             GUILayout.EndHorizontal();
-            GUILayout.Space(18);
+        }
 
+        void MenuOptions()
+        {
             GUILayout.Label("OPPONENT", heading, GUILayout.Height(34));
             GUILayout.BeginHorizontal();
             string[] names = { "Squire", "Knight", "Warlord" };
@@ -248,11 +275,32 @@ namespace Kingsfall
             GUILayout.Label("Music", body, GUILayout.Width(80), GUILayout.Height(30));
             SoundBank.I.MusicVolume = GUILayout.HorizontalSlider(SoundBank.I.MusicVolume, 0f, 1f, GUILayout.Height(30));
             GUILayout.EndHorizontal();
-            GUILayout.FlexibleSpace();
-            if (Application.platform != RuntimePlatform.WebGLPlayer && GUILayout.Button("Quit", button, GUILayout.Height(46))) Application.Quit();
-            GUILayout.EndArea();
+        }
 
-            GUI.Label(new Rect(0, H - 46, W, 30), "Left-click to move  ·  Right-drag or A/D to orbit  ·  Scroll to zoom  ·  Space skips a battle  ·  Esc for menu", small);
+        // phones: title on top, game buttons and options side by side
+        void DrawMenuCompact(float W, float H)
+        {
+            var old = GUI.color;
+            GUI.color = new Color(1, 1, 1, menuFade);
+            GUI.DrawTexture(new Rect(0, 0, W, H), vignetteTex, ScaleMode.StretchToFill);
+            float glow = 0.85f + 0.15f * Mathf.Sin(Time.unscaledTime * 1.3f);
+            var t = new GUIStyle(title) { fontSize = 70 };
+            var shadow = new GUIStyle(t); shadow.normal.textColor = new Color(0, 0, 0, 0.7f * menuFade);
+            GUI.Label(new Rect(0, 20, W, 100), "JOSH'S CHESS TRAINER", shadow);
+            t.normal.textColor = new Color(GoldC.r * glow, GoldC.g * glow, GoldC.b * glow, menuFade);
+            GUI.Label(new Rect(0, 14, W, 100), "JOSH'S CHESS TRAINER", t);
+
+            float pw = Mathf.Min(1080f, W - 40f), ph = 470f;
+            var pr = Track(new Rect(W * 0.5f - pw * 0.5f, 126, pw, ph));
+            GUI.Box(pr, GUIContent.none, panel);
+            float col = (pw - 90f) * 0.5f;
+            GUILayout.BeginArea(new Rect(pr.x + 30, pr.y + 26, col, ph - 40));
+            MenuGameButtons(64f, 10f);
+            GUILayout.EndArea();
+            GUILayout.BeginArea(new Rect(pr.x + 60 + col, pr.y + 18, col, ph - 32));
+            MenuOptions();
+            GUILayout.EndArea();
+            GUI.Label(new Rect(0, H - 52, W, 30), HelpLine, small);
             GUI.color = old;
         }
 
@@ -296,8 +344,9 @@ namespace Kingsfall
                 DrawCaptured(new Rect(cr.x + 16, cr.y + 56, cr.width - 32, 80), G.Captured[Board.Black], false, "White has slain");
                 DrawCaptured(new Rect(cr.x + 16, cr.y + 140, cr.width - 32, 80), G.Captured[Board.White], true, "Black has slain");
 
-                // move list (right)
-                var mr = Track(new Rect(W - 324, 120, 300, 560));
+                // move list (right); phones skip it to leave room for the board
+                if (!Compact) {
+                var mr = Track(new Rect(W - 324, 120, 300, Mathf.Min(560f, H - 230f)));
                 GUI.Box(mr, GUIContent.none, panel);
                 GUI.Label(new Rect(mr.x, mr.y + 10, mr.width, 34), "CHRONICLE", heading);
                 GUILayout.BeginArea(new Rect(mr.x + 18, mr.y + 54, mr.width - 30, mr.height - 70));
@@ -313,6 +362,7 @@ namespace Kingsfall
                 GUILayout.EndScrollView();
                 GUILayout.EndArea();
                 if (Event.current.type == EventType.Repaint) moveScroll.y = Mathf.Max(moveScroll.y, (G.Sans.Count + 1) / 2 * 30f);
+                }
             }
 
             DrawPieceBubble(W, H, a);
@@ -432,6 +482,18 @@ namespace Kingsfall
         /// <summary>The name box has the keyboard (camera keys and shortcuts are ignored meanwhile).</summary>
         public static bool Typing { get; private set; }
 
+#if UNITY_WEBGL && !UNITY_EDITOR
+        [System.Runtime.InteropServices.DllImport("__Internal")] static extern string WebPromptName(string current);
+#endif
+
+        static string CleanName(string raw)
+        {
+            var sb = new System.Text.StringBuilder();
+            foreach (char c in raw ?? "")
+                if (sb.Length < 16 && (char.IsLetterOrDigit(c) || " '._-".IndexOf(c) >= 0)) sb.Append(c);
+            return sb.ToString();
+        }
+
         void UpdateNameTyping()
         {
             if (!Typing || G == null || G.Score == null || G.ScoreSubmitted || !G.GameOver || G.Reviewing) { Typing = false; return; }
@@ -456,14 +518,20 @@ namespace Kingsfall
             if (!G.ScoreSubmitted)
             {
                 if (nameField == null) nameField = PlayerPrefs.GetString("playerName", "");
-                if (typingFor != G.Score) { typingFor = G.Score; Typing = true; } // ready to type after each scored game
+                if (typingFor != G.Score) { typingFor = G.Score; Typing = !Touch; } // ready to type after each scored game (keyboards only)
                 GUI.Label(new Rect(r.x + 60, y, 110, 40), "Your name", new GUIStyle(body) { fontSize = 20 });
                 // a home-made text box: Unity's IMGUI TextField mishandles typing in browsers
                 var box = new Rect(r.x + 175, y, 260, 40);
                 var field = new GUIStyle(button) { font = KingsfallLibrary.I.bodyFont, fontSize = 22, alignment = TextAnchor.MiddleLeft, padding = new RectOffset(12, 12, 4, 4) };
                 if (Typing) { field.normal.background = buttonHoverTex; field.hover.background = buttonHoverTex; }
                 bool caret = Typing && (Time.unscaledTime * 2f) % 2f < 1.2f;
-                if (GUI.Button(box, nameField + (caret ? "|" : ""), field)) Typing = true;
+                if (GUI.Button(box, nameField + (caret ? "|" : ""), field))
+                {
+#if UNITY_WEBGL && !UNITY_EDITOR
+                    if (Touch) { nameField = CleanName(WebPromptName(nameField)); Typing = false; } else
+#endif
+                    Typing = true;
+                }
                 GUI.enabled = nameField.Trim().Length >= 2;
                 if (GUI.Button(new Rect(r.x + 450, y, 240, 40), "Add to leaderboard", button) || submitTyped && GUI.enabled) { Typing = false; G.SubmitScore(nameField.Trim()); }
                 submitTyped = false;
@@ -477,7 +545,8 @@ namespace Kingsfall
         {
             var lb = Leaderboard.I;
             GUI.color = Color.white;
-            var r = Track(new Rect(W * 0.5f - 460, 90, 920, 900));
+            var r = Track(new Rect(W * 0.5f - 460, Compact ? 16 : 90, 920, Compact ? H - 32 : 900));
+            int maxRows = Mathf.Min(20, (int)((r.height - 250f) / 34f));
             GUI.Box(r, GUIContent.none, panel);
             GUI.Box(r, GUIContent.none, panel); // doubled for a more solid backdrop over the board
             GUI.Label(new Rect(r.x, r.y + 18, r.width, 50), "LEADERBOARD", new GUIStyle(heading) { fontSize = 40 });
@@ -495,7 +564,7 @@ namespace Kingsfall
             else
             {
                 bool marked = false;
-                for (int i = 0; i < lb.Top.Count && i < 20; i++)
+                for (int i = 0; i < lb.Top.Count && i < maxRows; i++)
                 {
                     var e = lb.Top[i];
                     bool mine = !marked && !string.IsNullOrEmpty(lb.Highlight) && e.name == lb.Highlight;

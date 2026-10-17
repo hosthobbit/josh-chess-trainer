@@ -77,6 +77,7 @@ namespace Kingsfall
 
         void Start()
         {
+            if (Application.isMobilePlatform) MobileQuality();
             view = BoardView.I;
             choreo = Choreographer.I;
             var args = System.Environment.GetCommandLineArgs();
@@ -87,6 +88,20 @@ namespace Kingsfall
             }
             if (autoshot) { StartCoroutine(AutoShot()); return; }
             StartAttract();
+        }
+
+        /// <summary>Phones and tablets: lighter rendering so the battles stay smooth and the battery lasts.</summary>
+        static void MobileQuality()
+        {
+            Application.targetFrameRate = 30;
+            var urp = UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline as UnityEngine.Rendering.Universal.UniversalRenderPipelineAsset;
+            if (urp)
+            {
+                urp.renderScale = 0.8f;
+                urp.shadowDistance = Mathf.Min(urp.shadowDistance, 20f);
+                urp.msaaSampleCount = 1;
+            }
+            if (PostFx.I) PostFx.I.Lite = true;
         }
 
         // ------------------------------------------------------------ public API (UI)

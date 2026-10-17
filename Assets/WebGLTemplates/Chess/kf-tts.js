@@ -21,7 +21,15 @@
     return parts.map(function (s) { return s.trim(); }).filter(function (s) { return s.length > 0; });
   }
 
-  function init() {
+  function hasBrowserVoice() {
+    return !!(window.speechSynthesis && window.speechSynthesis.getVoices().some(function (v) { return /^en/i.test(v.lang); }));
+  }
+
+  // Phones and tablets have good built-in voices, and the 63 MB Piper model is heavy for them:
+  // use the built-in voice there when it exists. Desktops (Linux Chromium often has none) get Piper.
+  function init(mobile) {
+    if (mobile !== undefined) S.mobile = !!mobile;
+    if (S.mobile && hasBrowserVoice()) { S.status = -1; return; }
     if (S.worker || S.status < 0) return;
     try {
       if (!navigator.storage || !navigator.storage.getDirectory) throw new Error("no OPFS");
@@ -154,6 +162,23 @@
     for (var i = 0; i < S.buf.length; i++) { var v = (S.buf[i] - 128) / 128; sum += v * v; }
     return Math.min(1, Math.sqrt(sum / S.buf.length) * 6);
   }
+
+  // iOS only lets a page make sound after a tap: unlock the audio element and the speech engine on the first one
+  function unlock() {
+    ensureAudio();
+    if (S.ctx && S.ctx.state === "suspended") S.ctx.resume();
+    try {
+      S.audio.src = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=";
+      var p = S.audio.play(); if (p && p.catch) p.catch(function () {});
+    } catch (e) {}
+    if (window.speechSynthesis) {
+      var u = new SpeechSynthesisUtterance(" ");
+      u.volume = 0;
+      window.speechSynthesis.speak(u);
+    }
+  }
+  window.addEventListener("touchend", unlock, { once: true });
+  window.addEventListener("pointerup", function first() { window.removeEventListener("pointerup", first); unlock(); });
 
   window.kfTts = {
     init: init,

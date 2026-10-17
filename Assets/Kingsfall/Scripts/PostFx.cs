@@ -23,6 +23,8 @@ namespace Kingsfall
         float slowTimer, slowScale = 1f;
         float exposureKick;
         public float BaseTimeScale = 1f;
+        /// <summary>Mobile: no depth of field (the most expensive effect) and no chromatic aberration.</summary>
+        public bool Lite;
 
         void Awake()
         {
@@ -69,6 +71,7 @@ namespace Kingsfall
             else Time.timeScale = Mathf.Lerp(Time.timeScale, BaseTimeScale, 1f - Mathf.Exp(-dt * 6f));
             Time.fixedDeltaTime = 0.02f * Mathf.Max(Time.timeScale, 0.05f);
 
+            if (Lite) { dofWeight = 0f; if (chroma) chroma.active = false; }
             if (chroma) chroma.intensity.value = 0.06f + pulse * 0.9f;
             if (lens) lens.intensity.value = -pulse * 0.28f;
             if (bloom) bloom.intensity.value = baseBloom + pulse * 1.2f + exposureKick * 2f;

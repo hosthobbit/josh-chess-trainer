@@ -1,0 +1,15 @@
+{
+  "name": "Josh's Chess Trainer",
+  "short_name": "Chess Trainer",
+  "description": "3D battle chess with talking pieces and a grandmaster who explains your game.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#0b0806",
+  "theme_color": "#0b0806",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

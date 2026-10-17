@@ -83,6 +83,17 @@ namespace Kingsfall
                     yawTarget += Input.GetAxisRaw("Mouse X") * 3.2f;
                     pitchTarget = Mathf.Clamp(pitchTarget - Input.GetAxisRaw("Mouse Y") * 2.4f, 18f, 82f);
                 }
+                // touch: two fingers turn the board (drag) and zoom (pinch)
+                if (Input.touchCount == 2)
+                {
+                    Touch t0 = Input.GetTouch(0), t1 = Input.GetTouch(1);
+                    Vector2 mid = (t0.position + t1.position) * 0.5f, prevMid = (t0.position - t0.deltaPosition + t1.position - t1.deltaPosition) * 0.5f;
+                    float span = (t0.position - t1.position).magnitude, prevSpan = ((t0.position - t0.deltaPosition) - (t1.position - t1.deltaPosition)).magnitude;
+                    float px = 600f / Mathf.Max(1f, Screen.height);
+                    yawTarget += (mid.x - prevMid.x) * 0.35f * px;
+                    pitchTarget = Mathf.Clamp(pitchTarget - (mid.y - prevMid.y) * 0.25f * px, 18f, 82f);
+                    if (prevSpan > 1f) distTarget = Mathf.Clamp(distTarget * prevSpan / Mathf.Max(1f, span), MinDistance, MaxDistance);
+                }
                 float scroll = Input.mouseScrollDelta.y;
                 if (Mathf.Abs(scroll) > 0.01f) distTarget = Mathf.Clamp(distTarget - scroll * 0.9f, MinDistance, MaxDistance);
                 if (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow)) yawTarget += 70f * dt;
